@@ -142,8 +142,10 @@ No se usa `QMessageBox`.
 ## Avisos flotantes
 
 `MessagePopover` (`include/thetaexplorer/popover/`, portado de `LGA_FileManagerS3`, ver
-`../LGA_Base_QT_C_Py/docs/Doc_MessagePopover.md`). `MainWindow::notifySuccess()` lo muestra 4 s;
-`notifyError()` lo deja hasta que se cierra, y un error nuevo reemplaza al que este abierto. Las
+`../LGA_Base_QT_C_Py/docs/Doc_MessagePopover.md`). `MainWindow::notifySuccess()` y
+`notifyError()` lo muestran cuatro segundos con el riel inferior que se consume,
+como PipeSync. Hover pausa la cuenta y salir la reanuda; la cruz permite cerrar
+antes. Un error nuevo reemplaza al abierto; cerrar no borra el detalle del estado ni del log. Las
 descargas avisan una sola vez por lote.
 
 ## Help

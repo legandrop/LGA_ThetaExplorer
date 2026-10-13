@@ -1305,7 +1305,7 @@ void MainWindow::notifyError(const QString& html)
     }
     m_errorPopover = new MessagePopover(this);
     m_errorPopover->setMessage(html);
-    m_errorPopover->showPopover();   // los errores no se cierran solos
+    m_errorPopover->showPopover(4000);
 }
 
 void MainWindow::notifySuccess(const QString& msg)

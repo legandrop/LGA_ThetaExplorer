@@ -1,6 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.026:
+- Los avisos de error se cierran automaticamente a los cuatro segundos y muestran la barra inferior que se consume, como los avisos de PipeSync. La cuenta se pausa al pasar el mouse por encima y conserva la cruz para cerrar antes; el detalle permanece en la barra de estado y en el log.
+- [ UI - Avisos con barra y cierre automatico ]
+
+v1.026:
 - El aviso de una entrada de camara ilegible explica que Windows no pudo identificar el item, cuantos archivos legibles siguen disponibles y que no hace falta actuar. Ya no pide Refresh durante una carga normal. La pantalla de carga indica que prepara grupos HDR y pide esperar mientras avanza el contador.
 - [ Windows - Aviso de camara y carga mas claros ]
 
