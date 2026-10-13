@@ -128,6 +128,13 @@ public:
         if (stopping) return;
         const QString op = recover ? "recover" : "refresh";
         for (const auto& pending : std::as_const(queue)) if (pending.value("op").toString() == op) return;
+        if (!recover) {
+            // El refresh descarta lecturas pendientes; las operaciones que modifican datos se conservan.
+            queue.removeIf([](const QJsonObject& job) {
+                const QString op = job.value("op").toString();
+                return op == "thumbnail" || op == "info";
+            });
+        }
         queue.enqueue({{"op", op}});
         pump();
     }

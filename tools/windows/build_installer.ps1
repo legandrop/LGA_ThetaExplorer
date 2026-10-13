@@ -9,6 +9,11 @@ function Run-Checked([string]$Command, [string[]]$Arguments) {
     & $Command @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Command fallo con codigo $LASTEXITCODE" }
 }
+function Confirm-Choice([string]$Message) {
+    & "$env:SystemRoot\System32\choice.exe" /C YN /M $Message | Out-Host
+    if ($LASTEXITCODE -notin 1, 2) { throw 'No se pudo leer la respuesta Y/N' }
+    return $LASTEXITCODE -eq 1
+}
 function Git-Value([string[]]$Arguments) {
     $value = & git @Arguments
     if ($LASTEXITCODE -ne 0) { throw "git $Arguments fallo" }
@@ -56,7 +61,16 @@ try {
     $version = $match.Groups[1].Value
     $changelog = [IO.File]::ReadAllText((Join-Path $root 'docs\ChangeLog.md'))
     if ([regex]::Match($changelog, '(?m)^v(\d+\.\d{3}):').Groups[1].Value -ne $version) { throw 'CMake y ChangeLog no coinciden' }
-    if ($Publish) { $commit = Publication-Preflight }
+    $interactive = -not $NoRun -and -not [Console]::IsInputRedirected
+    $offerPublication = -not $LocalOnly -and -not $StageOnly -and $interactive
+    if ($offerPublication) {
+        try { $commit = Publication-Preflight }
+        catch {
+            if ($Publish) { throw }
+            Write-Warning "No se puede publicar: $_. Se genera el instalador localmente."
+            $offerPublication = $false
+        }
+    }
     $compiler = if ($env:THETA_ISCC) { $env:THETA_ISCC } else { Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe' }
     if (-not $StageOnly -and -not (Test-Path -LiteralPath $compiler -PathType Leaf)) { throw 'Falta Inno Setup 6; indicar ISCC.exe con THETA_ISCC' }
     Run-Checked (Join-Path $root 'compilar.bat') @('--release','--no-run')
@@ -157,24 +171,30 @@ end;
     $hashFile = Join-Path $output 'SHA256SUMS'
     [IO.File]::WriteAllText($hashFile, ((File-Sha256 $setup) + '  ' + [IO.Path]::GetFileName($setup) + "`n"), $utf8)
     Write-Host "Instalador listo: $setup"
-    if ($Publish) {
+    if ($interactive) {
+        if (Confirm-Choice 'Desea ejecutar el instalador ahora mismo (instalar local)?') {
+            Start-Process -FilePath $setup -Wait
+        } else {
+            Write-Host 'Instalador no ejecutado.'
+        }
+        if (Confirm-Choice 'Desea revelar el instalador en Windows Explorer?') {
+            if (Test-Path -LiteralPath $setup) { & explorer.exe /select, $setup }
+        } else {
+            Write-Host 'No se abrio Windows Explorer.'
+        }
+    }
+    if ($offerPublication) {
         $currentCommit = Publication-Preflight
         if ($currentCommit -ne $commit) { throw 'El commit cambio durante el empaquetado' }
         Write-Host "Release publico: $repo / v$version / $commit"
         Write-Host "Archivos: $setup y $hashFile"
-        if ((Read-Host 'Escribir PUBLICAR para crear el release; Enter cancela') -ceq 'PUBLICAR') {
+        if (Confirm-Choice "Desea subir el instalador como release v$version a GitHub?") {
             $notes = Join-Path $output 'release-notes.md'
             [IO.File]::WriteAllText($notes, 'First Windows release. Browse a RICOH THETA over USB, preview photos, group HDR brackets and download JPG/DNG files. Windows 10/11 x64; no Ricoh software required.', $utf8)
             Run-Checked 'gh' @('release','create',"v$version",$setup,$hashFile,'--repo',$repo,'--target',$commit,
                 '--title',"Theta Explorer v$version",'--notes-file',$notes,'--latest')
-        }
-    }
-    if (-not $NoRun -and -not [Console]::IsInputRedirected) {
-        if ((Read-Host 'Ejecutar el instalador ahora? [s/N]') -match '^(s|si)$') {
-            Start-Process -FilePath $setup -Wait
-        }
-        if ((Read-Host 'Mostrar el instalador en Explorer? [s/N]') -match '^(s|si)$') {
-            if (Test-Path -LiteralPath $setup) { & explorer.exe /select, $setup }
+        } else {
+            Write-Host 'Release no publicado.'
         }
     }
     exit 0

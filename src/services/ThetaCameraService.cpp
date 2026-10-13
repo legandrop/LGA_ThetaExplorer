@@ -205,10 +205,18 @@ void ThetaCameraService::stop()
 
 void ThetaCameraService::refresh()
 {
+    if (isTransferActive() || m_deleteActive) return;
     LOGI("service") << "Refreshing camera browsing";
     if (m_thumbnailTimer) m_thumbnailTimer->stop();
     m_thumbnailQueue.clear();
     m_pendingThumbnails.clear();
+    // Reiniciar lecturas de cabeceras sin confundirlas con descargas del usuario.
+    m_pendingPreview = CameraFileInfo{};
+    m_imageInfoQueue.clear();
+    m_imageInfoActive = false;
+    m_catalogEnrichmentPending = false;
+    ++m_imageInfoRequestId;
+    if (m_imageInfoTimer) m_imageInfoTimer->stop();
     m_bridge->refreshCatalog();
 }
 
@@ -337,6 +345,8 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
         }
     }
     m_catalogEnrichmentPending = !m_imageInfoQueue.isEmpty();
+    m_catalogMetadataTotal = m_imageInfoQueue.size();
+    emit catalogLoadProgress(0, m_catalogMetadataTotal);
     m_headerRecovery = false;
     if (!m_catalogEnrichmentPending) publishCatalog();
     m_thumbnailTimer->start();
@@ -379,6 +389,8 @@ void ThetaCameraService::finishImageInfo(const CameraFileInfo& file, const QPixm
         }
     }
     emit previewActivityChanged(false);
+    if (m_catalogEnrichmentPending)
+        emit catalogLoadProgress(m_catalogMetadataTotal - m_imageInfoQueue.size(), m_catalogMetadataTotal);
     if (m_catalogEnrichmentPending && m_imageInfoQueue.isEmpty() && !m_headerRecovery) publishCatalog();
     kickNextDownload();
     m_thumbnailTimer->start();

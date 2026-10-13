@@ -14,7 +14,9 @@ exit /b 1
 :help
 echo Uso: instalador.bat [--local] [--no-run] [--stage-only] [--publish]
 echo Genera Release, setup y SHA256SUMS con la version actual, sin modificarla.
-echo --publish requiere confirmacion interactiva antes de crear el release publico.
+echo Sin flags, ofrece instalar, revelar y publicar en GitHub con respuestas Y/N.
+echo --local omite GitHub; --no-run omite todas las preguntas y la publicacion.
+echo --publish conserva la confirmacion Y/N y requiere GitHub listo.
 exit /b 0
 :run
 "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "%THETA_ROOT%tools\windows\build_installer.ps1" %THETA_FLAGS%

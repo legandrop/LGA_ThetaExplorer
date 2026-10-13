@@ -348,6 +348,13 @@ void MainWindow::setupConnections()
             this, &MainWindow::onCameraDisconnected);
     connect(m_service, &ThetaCameraService::fileListReady,
             this, &MainWindow::onFileListReady);
+    connect(m_service, &ThetaCameraService::catalogLoadProgress, this,
+            [this](int completed, int total) {
+                m_catalogMetadataCompleted = completed;
+                m_catalogMetadataTotal = total;
+                updateGridPage();
+                updateButtonStates();
+            });
     connect(m_service, &ThetaCameraService::thumbnailReady,
             m_gridWidget, &ThumbnailGridWidget::setThumbnail);
     connect(m_service, &ThetaCameraService::thumbnailReady,
@@ -646,8 +653,13 @@ void MainWindow::updateGridPage()
             "Its photos and videos will show up here.", true);
         m_gridStack->setCurrentIndex(1);
     } else if (!m_catalogLoaded) {
+        const QString detail = m_catalogMetadataTotal > 0
+            ? QString("Found %1 files. Reading bracket metadata: %2 of %3 photos. "
+                      "You can refresh to restart the scan.")
+                  .arg(m_service->fileList().size()).arg(m_catalogMetadataCompleted).arg(m_catalogMetadataTotal)
+            : QString("Reading the camera file list. You can refresh to restart the scan.");
         m_emptyState->setContent("Loading camera files",
-            "Reading photos and bracket metadata. This may take a moment.", false);
+            detail, false);
         m_gridStack->setCurrentIndex(1);
     } else if (m_catalogGroups.isEmpty()) {
         m_emptyState->setContent("The camera is empty",
@@ -778,6 +790,7 @@ void MainWindow::onCameraConnected(const QString& name)
     m_cameraLabel->style()->unpolish(m_cameraLabel);
     m_cameraLabel->style()->polish(m_cameraLabel);
     m_catalogLoaded = false;
+    m_catalogMetadataCompleted = m_catalogMetadataTotal = 0;
     updateGridPage();
     setStatusMessage("Camera connected. Loading files...", ColorUtils::SUCCESS);
     updateButtonStates();
@@ -792,6 +805,7 @@ void MainWindow::onCameraDisconnected()
     m_cameraLabel->style()->polish(m_cameraLabel);
     m_batteryBox->hide();
     m_catalogLoaded = false;
+    m_catalogMetadataCompleted = m_catalogMetadataTotal = 0;
     if (m_downloadInProgress) {
         LOGW("ui") << "Camera disconnected during a download:" << m_downloadDone
                    << "of" << m_downloadTotal << "files done";
@@ -1097,13 +1111,16 @@ void MainWindow::onBrowseFolderClicked()
 
 void MainWindow::onRefreshClicked()
 {
-    if (m_downloadInProgress || m_service->isDownloadActive()) {
-        setStatusMessage("Cannot refresh while a download is in progress.", ColorUtils::WARNING);
+    if (m_downloadInProgress || m_service->isTransferActive() || m_service->isDeleteActive()) {
+        setStatusMessage("Cannot refresh while a transfer or deletion is in progress.", ColorUtils::WARNING);
         return;
     }
 
     LOGI("ui") << "Manual camera refresh requested";
     setStatusMessage("Refreshing camera catalog...");
+    m_catalogLoaded = false;
+    m_catalogMetadataCompleted = m_catalogMetadataTotal = 0;
+    updateGridPage();
     m_service->refresh();
 }
 
@@ -1257,7 +1274,7 @@ void MainWindow::updateButtonStates()
     m_folderBtn->setEnabled(!busy);
 #ifdef Q_OS_WIN
     // Permitir reiniciar la busqueda aunque el auxiliar se haya detenido o no haya camara.
-    m_refreshBtn->setEnabled(!busy);
+    m_refreshBtn->setEnabled(!m_downloadInProgress && !m_service->isTransferActive() && !m_service->isDeleteActive());
 #else
     m_refreshBtn->setEnabled(hasCamera && !busy);
 #endif

@@ -133,6 +133,8 @@ protected:
     int                  m_downloadDone   = 0;
     bool                 m_downloadInProgress = false;
     bool                 m_catalogLoaded  = false;
+    int                  m_catalogMetadataCompleted = 0;
+    int                  m_catalogMetadataTotal = 0;
     int                  m_downloadErrors = 0;
     QString              m_lastDownloadError;
     QPointer<MessagePopover> m_errorPopover;

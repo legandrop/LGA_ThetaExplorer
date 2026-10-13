@@ -28,6 +28,7 @@ public:
     QString cameraIdentifier() const { return m_cameraIdentifier; }
     bool isCameraConnected() const { return m_connected; }
     bool isDownloadActive() const { return m_downloadActive || !m_downloadQueue.isEmpty() || m_recoveringAfterDownloadError || m_imageInfoActive || m_catalogEnrichmentPending; }
+    bool isTransferActive() const { return m_downloadActive || !m_downloadQueue.isEmpty() || m_recoveringAfterDownloadError; }
     bool isDeleteActive() const { return m_deleteActive; }
 
     void requestThumbnail(const CameraFileInfo& file);
@@ -41,6 +42,7 @@ signals:
     void cameraDisconnected();
     void batteryLevelChanged(int percent, bool available);
     void fileListReady(const QList<CameraFileInfo>& files);
+    void catalogLoadProgress(int completed, int total);
     void thumbnailReady(const QString& devicePath, const QPixmap& thumbnail);
     void previewFileReady(const QString& devicePath, const QString& savedPath);
     void previewError(const QString& devicePath, const QString& message);
@@ -105,6 +107,7 @@ private:
     quint64 m_imageInfoRequestId = 0;
     bool m_imageInfoActive = false;
     bool m_catalogEnrichmentPending = false;
+    int m_catalogMetadataTotal = 0;
     bool m_catalogMetadataFailed = false;
     bool m_headerRecovery = false;
     QList<PendingDownload> m_downloadQueue;

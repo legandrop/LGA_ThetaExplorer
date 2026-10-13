@@ -74,6 +74,10 @@ informan. Una selección desactualizada se rechaza.
 Si la Z1 enumera un objeto cuyas propiedades no se pueden leer, se muestran los
 archivos legibles y un aviso con la cantidad de objetos omitidos. Ese catálogo se
 marca parcial: no poda la cache ni verifica borrados por archivos ausentes.
+El aviso no impide cargar los archivos legibles. En una cache vacia, las cabeceras
+se leen antes de armar los HDR: la pantalla muestra archivos encontrados y progreso
+de metadatos. Refresh puede reiniciar estas lecturas, descarta peticiones pendientes
+y respuestas viejas, y sigue bloqueado durante transferencias y borrados reales.
 Un error de enumeracion, rutas duplicadas o una estructura invalida sigue rechazando
 la lista; tampoco se reemplaza un catalogo conocido por una lista parcial vacia.
 

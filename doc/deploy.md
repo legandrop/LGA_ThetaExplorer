@@ -18,8 +18,11 @@ canonica del Base. Genera el `.iss`, un manifiesto de archivos, el setup
 El `.iss` se regenera: se edita `tools/windows/build_installer.ps1`.
 `--stage-only` prepara y verifica el paquete sin compilar el setup.
 
-Sin `--no-run`, ofrece instalar y revelar el setup en Explorer, con respuestas
-independientes. El modo local no requiere Git/GitHub ni ofrece publicar.
+Sin flags y con consola interactiva, ofrece instalar, revelar el setup en Explorer
+y publicar en GitHub, en ese orden y con preguntas `Y/N` independientes mediante
+`choice /C YN`, igual que los otros instaladores. El modo local no requiere
+Git/GitHub ni ofrece publicar. `--no-run`, `--stage-only` y entrada redirigida
+omiten las preguntas y la publicacion.
 El destino predeterminado es `C:\Portable\LGA\ThetaExplorer`; los ajustes e
 historial siguen en AppData. Al desinstalar se retira la cache propia y se conservan
 las fotos descargadas. El cierre por ruta usa el script canonico del Base y alcanza
@@ -28,15 +31,17 @@ tambien al auxiliar WPD, que comparte el ejecutable de la app.
 Para publicar despues de commitear y pushear:
 
 ```bat
-instalador.bat --publish
+instalador.bat
 ```
 
 Requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
 repo publico correcto. Rechaza un release existente o un tag de otro commit.
-Muestra repo, version, commit y archivos; solo crea el release si se escribe
-`PUBLICAR`. Sube el setup y `SHA256SUMS` al mismo repo publico y no modifica
-permisos ni el manifiesto de LGA Updates. `--publish` no admite `--local`,
-`--stage-only`, `--no-run` ni entrada redirigida.
+Muestra repo, version, commit y archivos; solo crea el release si se responde `Y`
+a la pregunta final. Sube el setup y `SHA256SUMS` al mismo repo publico y no
+modifica permisos ni el manifiesto de LGA Updates. Si GitHub no esta listo,
+avisa y genera el instalador localmente. `--publish` sigue disponible para exigir
+esa verificacion antes de empaquetar, con la misma confirmacion `Y/N`; no admite
+`--local`, `--stage-only`, `--no-run` ni entrada redirigida.
 
 La validacion del empaquetador genera el setup y comprueba sus hashes e insumos;
 no ejecuta el setup real ni modifica una instalacion del usuario. La instalacion

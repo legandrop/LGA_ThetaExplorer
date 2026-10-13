@@ -1,6 +1,11 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.026:
+- El instalador conserva las preguntas Y/N del resto de las apps y ofrece publicar en GitHub al final sin requerir flags, despues de las ofertas independientes de instalar y revelar el archivo. El modo local y las corridas sin interaccion no publican.
+- La primera lectura de metadatos muestra cuantos archivos se encontraron y cuantas fotos se procesaron. Refresh permite reiniciar esa lectura sin esperar a que termine, invalidando respuestas viejas; sigue bloqueado durante descargas, recuperacion de transferencias y borrados. El aviso de catalogo parcial ya no afirma que la grilla esta visible mientras se leen los metadatos.
+- [ Windows - Instalador YN y progreso con Refresh ]
+
+v1.026:
 - Se prepara el primer instalador de Windows conservando la version 1.026: instalador.bat genera Release, empaqueta solo el runtime necesario y produce el setup con SHA256SUMS. instalador_local.bat permite armarlo sin GitHub; --publish verifica identidad, commit remoto y version sin publicar antes de la confirmacion final.
 - El setup instala en C:\Portable\LGA\ThetaExplorer, crea accesos directos y cierra las copias de la app con su auxiliar. La desinstalacion retira la cache propia y conserva ajustes, historial y fotos descargadas. La version se mantiene por decision expresa para el primer lanzamiento.
 - [ Windows - Primer instalador 1.026 ]
