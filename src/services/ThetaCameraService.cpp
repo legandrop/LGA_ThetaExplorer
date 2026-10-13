@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QCryptographicHash>
 #include <QRegularExpression>
+#include <QPointer>
 #include <algorithm>
 
 namespace {
@@ -25,6 +26,10 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
 {
     m_bridge = new ThetaBridge(this);
 
+    connect(m_bridge, &ThetaBridge::cameraIdentityReady, this, [this](const QString& identifier) {
+        m_cameraIdentifier = identifier;
+    });
+
     connect(m_bridge, &ThetaBridge::cameraConnected,
             this, [this](const QString& name) {
                 m_connected = true;
@@ -34,6 +39,7 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
     connect(m_bridge, &ThetaBridge::cameraDisconnected,
             this, [this]() {
                 m_connected = false;
+                m_cameraIdentifier.clear();
                 m_files.clear();
                 if (m_thumbnailTimer) m_thumbnailTimer->stop();
                 m_thumbnailQueue.clear();
@@ -144,6 +150,7 @@ void ThetaCameraService::start()
 
 void ThetaCameraService::stop()
 {
+    m_cameraIdentifier.clear();
     if (m_thumbnailTimer) m_thumbnailTimer->stop();
     if (m_imageInfoTimer) m_imageInfoTimer->stop();
     m_imageInfoQueue.clear();
@@ -394,7 +401,7 @@ void ThetaCameraService::downloadFiles(const QList<CameraFileInfo>& files,
                                         const QString& destinationPath)
 {
     for (const CameraFileInfo& file : files) {
-        m_downloadQueue.append(PendingDownload{file, destinationPath, 1});
+        m_downloadQueue.append(PendingDownload{file, destinationPath, 1, false, m_cameraIdentifier});
         LOGD("service") << "Enqueued download candidate:"
                         << file.name
                         << "destDir:" << destinationPath
@@ -439,7 +446,11 @@ void ThetaCameraService::onBridgeDownloadProgress(const QString& fileName, int p
 void ThetaCameraService::onBridgeDownloadFileCompleted(const QString& fileName,
                                                        const QString& savedPath)
 {
-    if (!m_downloadActive || fileName != m_activeDownload.file.name) return;
+    if (!m_downloadActive) return;
+    if (fileName != m_activeDownload.file.name) {
+        onBridgeDownloadError(m_activeDownload.file.name, "The downloaded file does not match the requested file.");
+        return;
+    }
     if (m_activeDownload.preview) {
         const CameraFileInfo file = m_activeDownload.file;
         const QString destination = m_activeDownload.destinationPath;
@@ -470,12 +481,30 @@ void ThetaCameraService::onBridgeDownloadFileCompleted(const QString& fileName,
         QTimer::singleShot(m_interDownloadDelayMs, this, &ThetaCameraService::kickNextDownload);
         return;
     }
+    const PendingDownload completed = m_activeDownload;
+    const QString resolvedPath = QDir::isAbsolutePath(savedPath) ? savedPath
+        : QDir(completed.destinationPath).filePath(savedPath.isEmpty() ? completed.file.name : savedPath);
+    const QFileInfo received(resolvedPath);
+    const QString canonicalPath = received.canonicalFilePath();
+    const QString expectedPath = QFileInfo(QDir(completed.destinationPath).filePath(completed.file.name)).canonicalFilePath();
+    if (completed.cameraIdentifier != m_cameraIdentifier || !received.isFile()
+        || expectedPath.isEmpty() || canonicalPath != expectedPath
+        || received.fileName() != completed.file.name || received.size() != completed.file.sizeBytes) {
+        onBridgeDownloadError(fileName, "The downloaded file could not be verified against the requested file.");
+        return;
+    }
+    CameraFileInfo verifiedFile = completed.file;
+    verifiedFile.nativeFileHandle = nullptr;
+    // Entregar el DTO verificado antes de que el flujo legado cierre el batch.
+    const QPointer<ThetaCameraService> alive(this);
+    emit userDownloadVerified(completed.cameraIdentifier, verifiedFile, canonicalPath);
+    if (!alive) return;
     if (!m_activeDownload.file.devicePath.isEmpty()) {
         m_failureCountByDevicePath.remove(m_activeDownload.file.devicePath);
     }
     m_downloadActive = false;
     m_activeDownload = PendingDownload{};
-    emit downloadFileCompleted(fileName, savedPath);
+    emit downloadFileCompleted(fileName, canonicalPath);
     QTimer::singleShot(m_interDownloadDelayMs, this, &ThetaCameraService::kickNextDownload);
 }
 
@@ -559,6 +588,12 @@ void ThetaCameraService::kickNextDownload()
     if (!m_downloadQueue.isEmpty()) {
         m_activeDownload = m_downloadQueue.takeFirst();
         const CameraFileInfo requested = m_activeDownload.file;
+        if (m_activeDownload.cameraIdentifier != m_cameraIdentifier) {
+            m_activeDownload = PendingDownload{};
+            emit downloadError(requested.name, "The connected camera changed. Start the download again.");
+            QTimer::singleShot(0, this, &ThetaCameraService::kickNextDownload);
+            return;
+        }
         const auto current = std::find_if(m_files.cbegin(), m_files.cend(), [&requested](const CameraFileInfo& file) {
             return file.devicePath == requested.devicePath && file.name == requested.name
                 && file.sizeBytes == requested.sizeBytes && file.creationDate == requested.creationDate
@@ -591,7 +626,7 @@ void ThetaCameraService::kickNextDownload()
             emit previewError(file.devicePath, "The preview cache could not be created.");
             return;
         }
-        m_activeDownload = PendingDownload{file, directory, 1, true};
+        m_activeDownload = PendingDownload{file, directory, 1, true, m_cameraIdentifier};
     } else {
         return;
     }

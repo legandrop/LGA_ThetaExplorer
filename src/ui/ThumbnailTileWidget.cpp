@@ -45,12 +45,12 @@ ThumbnailTileWidget::ThumbnailTileWidget(const MediaAssetGroup& group, QWidget* 
     m_thumb->setAlignment(Qt::AlignCenter);
     m_thumb->setObjectName("tileThumb");
 
-    // Badge de estado local: descargado entero o en parte.
+    // Historial confirmado: independiente de que las copias sigan en el destino.
     const qreal dpr = devicePixelRatioF();
     m_downloadedBadge = new QLabel(m_thumb);
     m_downloadedBadge->setObjectName("tileBadge");
     m_downloadedBadge->setTextFormat(Qt::RichText);
-    if (group.allFilesDownloaded || group.hasPartialLocalContent) {
+    if (group.allFilesDownloaded || group.hasPartialDownloadHistory) {
         const bool full = group.allFilesDownloaded;
         m_downloadedBadge->setProperty("state", full ? "saved" : "partial");
         auto* badgeLayout = new QHBoxLayout(m_downloadedBadge);
@@ -59,7 +59,7 @@ ThumbnailTileWidget::ThumbnailTileWidget(const MediaAssetGroup& group, QWidget* 
         auto* badgeIcon = new QLabel(m_downloadedBadge);
         badgeIcon->setPixmap(UiIcons::pixmap(full ? "check" : "partial", 12,
                                              QColor(full ? kBadgeSavedText : kBadgePartialText), dpr));
-        auto* badgeText = new QLabel(full ? "Saved" : "Partial", m_downloadedBadge);
+        auto* badgeText = new QLabel(full ? "Downloaded" : "Partial", m_downloadedBadge);
         badgeText->setObjectName("tileBadgeText");
         badgeText->setProperty("state", full ? "saved" : "partial");
         badgeLayout->addWidget(badgeIcon);

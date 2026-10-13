@@ -24,4 +24,5 @@ private:
     QLabel* m_dateVal  = nullptr;
     QLabel* m_dimVal   = nullptr;
     QLabel* m_pathVal  = nullptr;
+    QLabel* m_downloadVal = nullptr;
 };

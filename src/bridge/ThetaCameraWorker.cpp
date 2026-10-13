@@ -567,7 +567,17 @@ bool WpdWorker::openDevice(const QString& id)
     deviceId = id;
     ++cameraEpoch;
     if (readOnly) qWarning() << "La cámara WPD se abrió sólo para lectura; el borrado está deshabilitado.";
-    reply("connected", {{"name", deviceName}});
+    ComPtr<IPortableDeviceKeyCollection> identityKeys;
+    ComPtr<IPortableDeviceValues> identityValues;
+    QString serial;
+    if (SUCCEEDED(createComObject(CLSID_PortableDeviceKeyCollection, IID_IPortableDeviceKeyCollection, identityKeys))
+        && SUCCEEDED(identityKeys->Add(WPD_DEVICE_SERIAL_NUMBER))
+        && SUCCEEDED(props->GetValues(WPD_DEVICE_OBJECT_ID, identityKeys.get(), identityValues.out()))
+        && identityValues.get()) {
+        serial = stringValue(identityValues.get(), WPD_DEVICE_SERIAL_NUMBER).trimmed().toUpper();
+    }
+    const QString identifier = serial.isEmpty() ? QString() : QStringLiteral("serial:") + serial;
+    reply("connected", {{"name", deviceName}, {"cameraId", identifier}});
     return true;
 }
 

@@ -10,6 +10,7 @@
 #include <QPointer>
 #include "thetaexplorer/CameraFileInfo.h"
 #include "thetaexplorer/MediaAssetGroup.h"
+#include "thetaexplorer/DownloadHistory.h"
 
 class ThetaCameraService;
 class ThumbnailGridWidget;
@@ -41,6 +42,7 @@ private slots:
     void onRefreshClicked();
     void onDownloadProgress(const QString& fileName, int percent);
     void onDownloadFileCompleted(const QString& fileName, const QString& path);
+    void onUserDownloadVerified(const QString& cameraId, const CameraFileInfo& file, const QString& path);
     void onDownloadError(const QString& fileName, const QString& error);
     void onDeleteCompleted(const QStringList& deletedPaths);
     void onErrorOccurred(const QString& message);
@@ -120,6 +122,9 @@ protected:
 
     // State
     QString              m_downloadFolder;
+    DownloadHistory      m_history;
+    bool                 m_historyReadWarningShown = false;
+    bool                 m_historyWriteFailed = false;
     QList<CameraFileInfo> m_catalogFiles;
     QList<MediaAssetGroup> m_catalogGroups;
     QList<MediaAssetGroup> m_selectedGroups;

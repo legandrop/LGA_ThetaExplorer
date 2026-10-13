@@ -31,6 +31,7 @@ public:
 
 signals:
     // Camera lifecycle
+    void cameraIdentityReady(const QString& cameraIdentifier);
     void cameraConnected(const QString& cameraName);
     void cameraDisconnected();
     void cameraError(const QString& errorMessage);

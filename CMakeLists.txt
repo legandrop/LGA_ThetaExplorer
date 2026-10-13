@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ThetaExplorer VERSION 1.018 LANGUAGES CXX)
+project(ThetaExplorer VERSION 1.019 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -93,6 +93,7 @@ set(SOURCES
     src/main.cpp
     src/services/ThetaCameraService.cpp
     src/services/DownloadManager.cpp
+    src/services/DownloadHistory.cpp
     src/services/HdrGroupingService.cpp
     src/ui/MainWindow.cpp
     src/ui/ThumbnailGridWidget.cpp
@@ -139,6 +140,7 @@ set(HEADERS
     include/thetaexplorer/PreviewPanel.h
     include/thetaexplorer/FileMetadataPanel.h
     include/thetaexplorer/DownloadManager.h
+    include/thetaexplorer/DownloadHistory.h
     include/thetaexplorer/ConfirmDialog.h
     include/thetaexplorer/HelpDialog.h
     include/thetaexplorer/StatusWidgets.h

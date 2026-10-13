@@ -307,9 +307,10 @@ private:
         }
         if (event == "connected") {
             const QString name = packet.value("name").toString();
-            if (name.isEmpty()) return false;
+            if (name.isEmpty() || (packet.contains("cameraId") && !packet.value("cameraId").isString())) return false;
             connected = true;
-            owner->cameraConnected(name);
+            owner->cameraIdentityReady(packet.value("cameraId").toString());
+            if (owner) owner->cameraConnected(name);
         } else if (event == "disconnected") {
             connected = false; catalog.clear(); queue.clear();
             owner->cameraDisconnected();

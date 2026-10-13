@@ -24,6 +24,7 @@ public:
     void refresh();
 
     const QList<CameraFileInfo>& fileList() const { return m_files; }
+    QString cameraIdentifier() const { return m_cameraIdentifier; }
     bool isCameraConnected() const { return m_connected; }
     bool isDownloadActive() const { return m_downloadActive || !m_downloadQueue.isEmpty() || m_recoveringAfterDownloadError || m_imageInfoActive || m_catalogEnrichmentPending; }
     bool isDeleteActive() const { return m_deleteActive; }
@@ -45,6 +46,8 @@ signals:
     void previewActivityChanged(bool active);
     void downloadProgress(const QString& fileName, int percent);
     void downloadFileCompleted(const QString& fileName, const QString& savedPath);
+    void userDownloadVerified(const QString& cameraIdentifier, const CameraFileInfo& file,
+                              const QString& savedPath);
     void downloadError(const QString& fileName, const QString& errorMessage);
     void deleteCompleted(const QStringList& deletedPaths);
     void errorOccurred(const QString& message);
@@ -70,9 +73,11 @@ private:
         QString destinationPath;
         int attempt = 1;
         bool preview = false;
+        QString cameraIdentifier;
     };
 
     ThetaBridge*          m_bridge       = nullptr;
+    QString              m_cameraIdentifier;
     QList<CameraFileInfo> m_files;
     QList<CameraFileInfo> m_thumbnailQueue;
     QList<CameraFileInfo> m_imageInfoQueue;

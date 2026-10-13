@@ -49,7 +49,7 @@ o el plugin TLS `libqsecuretransportbackend.dylib`.
   empty».
   Mientras lee el catalogo y EXIF de brackets muestra «Loading camera files».
 - **Tarjetas**: 180 × 160 px por captura, miniatura168×100px y pie de dos lineas.
-  Nombre14px, fecha13px, formato sobre imagen12px; Saved/Partial12px. Cada tarjeta
+  Nombre14px, fecha13px, formato sobre imagen12px; Downloaded/Partial12px. Cada tarjeta
   conserva nombre y fecha/hora con mes abreviado. Sobre la imagen aparece el tipo
   y, para HDR, el formato y la cantidad de brackets: «HDRI DNG + JPG · 9».
 - **Misma captura HDR**: si los sets DNG y JPG contienen las mismas tomas, se fusionan
@@ -78,6 +78,10 @@ o el plugin TLS `libqsecuretransportbackend.dylib`.
   File Info compacto conserva nombre, tipo/formato/brackets, tamaño total, fecha/hora,
   path y dimensiones cuando se conoce el original. Ya no hay divisor vertical interno
   ni se restaura su antigua preferencia; el divisor Browse/Viewer sigue persistido.
+  Una fila adicional muestra Last downloaded con fecha/hora local y, si es parcial,
+  archivos registrados sobre el total; sin registros indica Download history: Not recorded.
+  Las marcas Downloaded/Partial usan el historial confirmado, separado de la presencia
+  de archivos en la carpeta de destino. No se aumenta la altura de las tarjetas.
 - **Teclado**: clicar una tarjeta enfoca la grilla. Izquierda/derecha recorren los items;
   arriba/abajo conservan la columna, o llegan al ultimo item si la ultima fila queda corta.
   El scroll solo revela la nueva seleccion. Shift + flechas extiende/reduce el rango desde su

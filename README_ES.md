@@ -20,8 +20,9 @@ vista previa de la exposición del medio, y se ve de un vistazo qué sets ya des
 - **Preview panorámico** debajo del JPEG original. Las fotos DualFisheye se unen de forma
   aproximada; las imágenes ya unidas conservan su panorama. La vista tiene costuras visibles,
   sin calibración óptica ni mezcla de las exposiciones HDR.
-- **Qué ya tenés.** Los ítems que están completos en tu carpeta de descarga se marcan
-  *Saved*; los que tienen solo parte de sus archivos, *Partial*.
+- **Historial permanente.** Las descargas verificadas se marcan *Downloaded*, o
+  *Partial* cuando se descargó solo parte de los archivos. File Info muestra la fecha
+  de la última descarga. Las marcas se conservan al mover o borrar la carpeta de destino.
 - **Lo reciente resalta.** La fecha de una captura arranca en verde claro (ámbar en DNG) y
   se apaga a lo largo de 28 horas, así una sesión recién hecha se encuentra enseguida.
 - **Carpetas por formato.** Los archivos DNG y JPG conservan sus propias carpetas, con
@@ -82,6 +83,12 @@ La ventana de Help muestra también dónde guarda la app sus archivos, y los abr
 
 - Settings: `~/Library/Application Support/LGA/ThetaExplorer/`
 - Log: `~/Library/Logs/LGA/ThetaExplorer/debug.log`
+
+El historial vive en `download-history.json`, junto a settings
+(`%APPDATA%\LGA\ThetaExplorer` en Windows). Es propio de esta computadora,
+distingue cada camara y empieza con las descargas hechas desde esta version.
+Los archivos existentes y los previews no crean registros historicos. La marca
+no saltea una nueva descarga: Skip Existing revisa los archivos del destino elegido.
 
 En Help, **Check now** busca una versión publicada más nueva. La búsqueda automática está
 activada inicialmente. Cuando hay una actualización, podés elegir **Update now**, **Remind

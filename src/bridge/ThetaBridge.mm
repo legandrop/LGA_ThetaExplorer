@@ -456,6 +456,11 @@ static NSData* makePTPCommandData(uint16_t operationCode,
     cam.delegate = camDel;
     [cam requestOpenSession];
 
+    const QString serial = QString::fromNSString(cam.serialNumberString ?: @"").trimmed().toUpper();
+    const QString identifier = serial.isEmpty() ? QString() : QStringLiteral("serial:") + serial;
+    QMetaObject::invokeMethod(self.qtBridge, "cameraIdentityReady",
+                              Qt::QueuedConnection,
+                              Q_ARG(QString, identifier));
     QString name = QString::fromNSString(cam.name);
     QMetaObject::invokeMethod(self.qtBridge, "cameraConnected",
                               Qt::QueuedConnection,

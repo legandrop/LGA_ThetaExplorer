@@ -95,6 +95,15 @@ reconstruye los grupos por formato para conservar las carpetas _jpg/_dng y sus f
 Estado local, Skip Existing y Replace usan los mismos destinos. Tras el borrado se reconstruye el
 catalogo desde los archivos restantes, incluido un formato superviviente en caso de borrado parcial.
 
+`DownloadHistory` conserva un JSON permanente al lado de settings, separado de esos
+destinos. Los bridges entregan identidad de camara por serial; el servicio la conserva
+en cada descarga y emite `userDownloadVerified` con el DTO sin handle nativo despues
+de verificar ruta, nombre y tamaño, antes del completado legado. MainWindow registra
+esa transferencia; previews y cabeceras no generan registros. Downloaded/Partial y
+la ultima fecha de File Info consultan ese historial por archivo de ambos formatos.
+Skip Existing/Replace siguen consultando archivos locales. Detalle de identidad,
+persistencia atomica y errores: `session-and-download-behavior.md`.
+
 ## Referencias
 
 - `include/thetaexplorer/MediaAssetGroup.h`: captura combinada y cantidad de brackets.

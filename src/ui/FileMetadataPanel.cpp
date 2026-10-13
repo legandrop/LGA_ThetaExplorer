@@ -36,6 +36,8 @@ FileMetadataPanel::FileMetadataPanel(QWidget* parent)
     m_dateVal = makeValue("date");
     m_dimVal = makeValue("dimensions");
     m_pathVal = makeValue("path");
+    m_downloadVal = makeValue("downloaded");
+    m_downloadVal->setWordWrap(true);
     m_nameVal->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     m_typeVal->setWordWrap(true);
     m_pathVal->setWordWrap(true);
@@ -54,6 +56,7 @@ FileMetadataPanel::FileMetadataPanel(QWidget* parent)
     addRow(m_nameVal, m_sizeVal);
     addRow(m_typeVal, m_dimVal);
     addRow(m_dateVal, m_pathVal);
+    outer->addWidget(m_downloadVal);
 
     clearMetadata();
 }
@@ -86,6 +89,12 @@ void FileMetadataPanel::setRow(QLabel* val, const QString& text)
 
 void FileMetadataPanel::showMetadata(const MediaAssetGroup& group)
 {
+    const QString downloadStatus = group.lastDownloadedAt.isValid()
+        ? QString("Last downloaded: %1%2").arg(group.lastDownloadedAt.toLocalTime().toString("d MMM yyyy · HH:mm"),
+            group.hasPartialDownloadHistory ? QString(" (%1 of %2 files)").arg(group.downloadedFileCount).arg(group.files.size()) : QString())
+        : QStringLiteral("Download history: Not recorded");
+    setRow(m_downloadVal, downloadStatus);
+    m_downloadVal->setVisible(true);
     if (group.files.size() == 1) {
         const CameraFileInfo& file = group.files.first();
         setRow(m_nameVal, file.name);
@@ -126,6 +135,8 @@ void FileMetadataPanel::showMetadata(const MediaAssetGroup& group)
 
 void FileMetadataPanel::showMultipleSelection(int count)
 {
+    setRow(m_downloadVal, QString());
+    m_downloadVal->setVisible(false);
     setRow(m_nameVal, QString("%1 items selected").arg(count));
     setRow(m_typeVal, "—");
     setRow(m_sizeVal, "—");
@@ -136,6 +147,8 @@ void FileMetadataPanel::showMultipleSelection(int count)
 
 void FileMetadataPanel::clearMetadata()
 {
+    setRow(m_downloadVal, QString());
+    m_downloadVal->setVisible(false);
     setRow(m_nameVal, "—");
     setRow(m_typeVal, "—");
     setRow(m_sizeVal, "—");

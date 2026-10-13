@@ -27,13 +27,40 @@ Cuando llega el catalogo de la camara, la app:
 
 1. agrupa el catalogo en `MediaAssetGroup`
 2. calcula las carpetas esperadas por formato; una captura DNG + JPG ocupa una tarjeta y dos carpetas
-3. revisa si ya existen en disco todos los archivos del grupo
-4. marca el tile con el badge **Saved** (check) si el grupo ya esta completamente descargado, o
-   **Partial** (medio circulo) si hay algo en disco pero no todo
+3. consulta el historial por camara y por archivo, separado de la presencia local
+4. marca el tile con **Downloaded** (check) si todos sus archivos tienen una descarga
+   confirmada, o **Partial** (medio circulo) si solo una parte tiene registro
+
+El historial vive en `download-history.json`, junto a `settings.ini`: en macOS,
+`~/Library/Application Support/LGA/ThetaExplorer/`; en Windows,
+`%APPDATA%\LGA\ThetaExplorer`. No depende de la carpeta de destino y sobrevive a
+borrarla, moverla o elegir otra. Es propio de esta computadora; no viaja con la
+camara ni se borra automaticamente al formatearla.
+
+Cada registro corresponde a la identidad estable de la camara (serial resumido con
+SHA256), carpeta, nombre, tamaño, fecha de captura y UID disponible. Sin serial o
+sin fecha/UID fiables no se inventa una identidad. La fecha de descarga se guarda
+en UTC; File Info muestra Last downloaded en hora local y, para un grupo parcial,
+cuantos archivos tienen registro sobre el total. Es la ultima transferencia registrada
+de cualquier archivo del grupo, no la fecha de captura ni una garantia de copia local.
+
+Solo se registra una descarga elegida por el usuario, una vez que el servicio verifica
+el archivo recibido contra nombre, ruta de destino y tamaño esperados. Previews,
+miniaturas y cabeceras quedan fuera. Los archivos existentes en disco no crean registros,
+porque no prueban cuando ni con que camara se descargaron. El historial empieza con
+las descargas hechas desde1.019; no reconstruye descargas anteriores ya eliminadas.
+
+La escritura usa QSaveFile y un bloqueo entre instancias; cada modificacion relee
+el archivo para no pisar registros de otra copia. Un JSON invalido se conserva sin
+reemplazar. Si no se puede guardar, la descarga real sigue contando como completada
+y se avisa que no quedo registrada; el detalle tecnico va al log.
 
 ## Descargar sobre algo que ya existe
 
 Si algun item seleccionado ya tiene algo en la carpeta de descarga, se pregunta antes de bajar:
+
+Este control examina el destino actual. Una marca historica Downloaded o Partial
+no saltea archivos ni impide volver a descargarlos a una carpeta vacia.
 
 - **Skip Existing** (Enter, la opcion por defecto): se saltean los archivos que ya estan en disco
   con el mismo tamano y se baja el resto, asi que un set a medio bajar se completa. Hasta v0.993
@@ -65,7 +92,8 @@ archivo.
 
 Una captura DNG + JPG se selecciona y descarga con una sola accion. Sus archivos se guardan
 en las dos subcarpetas por formato que la app ya usaba; no se renombran ni se mueven descargas
-existentes. Saved exige ambos formatos completos y Partial indica que falta alguno.
+existentes. Downloaded exige registros de todos los archivos de ambos formatos;
+Partial indica que solo una parte tiene descarga confirmada.
 La fecha de cada carpeta corresponde al representativo de ese formato, incluso si sus fechas
 caen a ambos lados de medianoche. Fotos, RAW, videos y HDR de un solo formato usan una carpeta.
 

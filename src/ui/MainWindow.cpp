@@ -141,6 +141,7 @@ QPushButton* toolbarButton(const QString& text, const char* objectName, QWidget*
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , m_history(QDir(AppPaths::settingsDirectory()).filePath(QStringLiteral("download-history.json")))
 {
     setWindowTitle("Theta Explorer");
     setMinimumSize(900, 600);
@@ -385,6 +386,8 @@ void MainWindow::setupConnections()
             this, &MainWindow::onDownloadProgress);
     connect(m_service, &ThetaCameraService::downloadFileCompleted,
             this, &MainWindow::onDownloadFileCompleted);
+    connect(m_service, &ThetaCameraService::userDownloadVerified,
+            this, &MainWindow::onUserDownloadVerified);
     connect(m_service, &ThetaCameraService::downloadError,
             this, &MainWindow::onDownloadError);
     connect(m_service, &ThetaCameraService::batteryLevelChanged,
@@ -711,6 +714,15 @@ QList<CameraFileInfo> MainWindow::selectedFilesFlattened() const
 
 void MainWindow::refreshDownloadedStatus()
 {
+    if (!m_history.reload()) {
+        if (!m_historyReadWarningShown) {
+            LOGW("ui") << m_history.errorString();
+            notifyError("Download history could not be read. Existing history was preserved.");
+            m_historyReadWarningShown = true;
+        }
+    } else {
+        m_historyReadWarningShown = false;
+    }
     for (MediaAssetGroup& group : m_catalogGroups) {
         updateGroupLocalStatus(group);
     }
@@ -738,31 +750,25 @@ void MainWindow::resizeEvent(QResizeEvent* event)
 
 void MainWindow::updateGroupLocalStatus(MediaAssetGroup& group) const
 {
-    int found = 0;
-    int exactSizeMatches = 0;
     bool folderExists = false;
 
     for (const MediaAssetGroup& format : HdrGroupingService::downloadGroups(group)) {
         const QString folderPath = groupDownloadFolderPath(format);
         folderExists |= QFileInfo::exists(folderPath);
-        for (const CameraFileInfo& file : format.files) {
-            const QString matchedPath = findMatchingLocalFilePath(folderPath, file.name);
-            if (matchedPath.isEmpty()) continue;
-            ++found;
-
-            const QFileInfo localInfo(matchedPath);
-            if (file.sizeBytes > 0 && localInfo.exists() && localInfo.size() == file.sizeBytes) {
-                ++exactSizeMatches;
-            }
-        }
     }
 
-    group.downloadedFileCount = found;
-    group.allFilesDownloaded = !group.files.isEmpty()
-        && found == group.files.size()
-        && exactSizeMatches == group.files.size();
-    group.hasPartialLocalContent = !group.allFilesDownloaded
-        && (found > 0 || folderExists);
+    group.hasLocalContent = folderExists;
+    group.downloadedFileCount = 0;
+    group.lastDownloadedAt = QDateTime();
+    for (const CameraFileInfo& file : group.files) {
+        const QDateTime downloadedAt = m_history.lastDownloadedAt(m_service->cameraIdentifier(), file);
+        if (!downloadedAt.isValid()) continue;
+        ++group.downloadedFileCount;
+        if (!group.lastDownloadedAt.isValid() || group.lastDownloadedAt < downloadedAt)
+            group.lastDownloadedAt = downloadedAt;
+    }
+    group.allFilesDownloaded = !group.files.isEmpty() && group.downloadedFileCount == group.files.size();
+    group.hasPartialDownloadHistory = group.downloadedFileCount > 0 && !group.allFilesDownloaded;
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
@@ -893,7 +899,7 @@ void MainWindow::onDownloadClicked()
     QList<MediaAssetGroup> groupsWithLocal;
     for (MediaAssetGroup group : selection) {
         updateGroupLocalStatus(group);
-        if (group.allFilesDownloaded || group.hasPartialLocalContent) {
+        if (group.hasLocalContent) {
             groupsWithLocal.append(group);
         }
     }
@@ -987,6 +993,7 @@ void MainWindow::onDownloadClicked()
     m_downloadTotal = filesToDownload;
     m_downloadDone  = 0;
     m_downloadErrors = 0;
+    m_historyWriteFailed = false;
     m_lastDownloadError.clear();
     m_downloadHasDeterminateProgress = false;
     m_downloadInProgress = true;
@@ -1140,6 +1147,16 @@ void MainWindow::onDownloadFileCompleted(const QString& fileName, const QString&
     }
 }
 
+void MainWindow::onUserDownloadVerified(const QString& cameraId, const CameraFileInfo& file,
+                                      const QString& path)
+{
+    Q_UNUSED(path);
+    if (!m_history.record(cameraId, file)) {
+        LOGW("ui") << "No se pudo registrar la descarga confirmada:" << file.name << m_history.errorString();
+        m_historyWriteFailed = true;
+    }
+}
+
 void MainWindow::onDownloadError(const QString& fileName, const QString& error)
 {
     m_downloadDone++;
@@ -1172,11 +1189,15 @@ void MainWindow::finishDownloadBatch()
         const QString msg = QString("Downloaded %1 file%2 to %3")
             .arg(ok).arg(ok != 1 ? "s" : "").arg(m_downloadFolder);
         setStatusMessage(msg, ColorUtils::SUCCESS);
-        notifySuccess(QString("Downloaded %1 file%2.").arg(ok).arg(ok != 1 ? "s" : ""));
+        if (m_historyWriteFailed)
+            notifyError("Files were downloaded, but download history could not be saved.");
+        else
+            notifySuccess(QString("Downloaded %1 file%2.").arg(ok).arg(ok != 1 ? "s" : ""));
     } else {
         notifyError(QString("<b>%1 of %2 files couldn't be downloaded.</b><br>%3")
             .arg(m_downloadErrors).arg(m_downloadTotal)
-            .arg(m_lastDownloadError.toHtmlEscaped()));
+            .arg(m_lastDownloadError.toHtmlEscaped() + (m_historyWriteFailed
+                ? QStringLiteral("<br>Download history for the completed files could not be saved.") : QString())));
     }
 }
 

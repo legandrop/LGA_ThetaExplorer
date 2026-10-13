@@ -25,8 +25,10 @@ struct MediaAssetGroup {
     bool isRaw = false;
     bool isVideo = false;
     bool allFilesDownloaded = false;
-    bool hasPartialLocalContent = false;
+    bool hasLocalContent = false;
+    bool hasPartialDownloadHistory = false;
     int downloadedFileCount = 0;
+    QDateTime lastDownloadedAt;
     QDateTime captureTime;
     QString displayTitle;
     QString subtitle;

@@ -1,5 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.019:
+- El historial de descargas se guarda de forma permanente junto a settings.ini, separado del destino y por identidad de camara/archivo. Registra fecha UTC solamente tras una transferencia del usuario con ruta, nombre y tamaño verificados; previews y cabeceras no cuentan. Escritura atomica y bloqueo entre instancias conservan los registros anteriores ante errores o archivos invalidos.
+- Las tarjetas muestran Downloaded o Partial desde ese historial, aunque se mueva o borre la carpeta de descarga; File Info muestra la ultima fecha/hora y el progreso parcial por archivo. Skip Existing y Replace siguen revisando los archivos locales, sin saltarse nuevas descargas por una marca historica. No se inventan registros para descargas anteriores.
+- [ Descargas - Historial permanente junto a settings ]
+
 v1.018:
 - Windows incorpora acceso USB mediante Windows Portable Devices en un auxiliar aislado: descubre la THETA, enumera sus archivos, lee miniaturas y metadatos, descarga con verificacion de bytes y permite borrar solo los objetos confirmados. Las operaciones conservan identidad de sesion y archivo, rechazan rutas ambiguas y no se repiten automaticamente tras un timeout.
 - compilar.bat conserva Debug/Release separados, copia el runtime por rutas explicitas y abre la app sin retener la terminal. Refresh permite reiniciar la busqueda sin camara; Help muestra los atajos de cada plataforma y el actualizador identifica el ejecutable de Windows. Las miniaturas y metadatos se invalidan cuando cambia la identidad persistente; fechas desconocidas o carpetas diferentes no forman HDRI por proximidad.

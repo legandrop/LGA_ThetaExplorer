@@ -20,8 +20,9 @@ with its middle exposure, and you can see at a glance which sets you already dow
 - **Panoramic preview** below the original JPEG. DualFisheye images get an approximate
   stitched preview; images already stitched keep their existing panorama. This is a
   preview with visible seams, without optical calibration or HDR exposure merging.
-- **Know what you already have.** Items fully in your download folder are marked
-  *Saved*; items with only some of their files are marked *Partial*.
+- **Persistent download history.** Verified downloads are marked *Downloaded*, or
+  *Partial* when only some files were downloaded. File Info shows the last download
+  date. These marks survive moving or deleting your download folder.
 - **Recent captures stand out.** A capture's date starts bright green (amber for DNG) and
   fades over 28 hours, so a fresh shoot is easy to find.
 - **Folders by format.** DNG and JPG files keep their own folders, named after the
@@ -82,6 +83,12 @@ The Help window also shows where the app keeps its files, and opens them in Find
 
 - Settings: `~/Library/Application Support/LGA/ThetaExplorer/`
 - Log: `~/Library/Logs/LGA/ThetaExplorer/debug.log`
+
+Download history is stored next to settings in `download-history.json`
+(`%APPDATA%\LGA\ThetaExplorer` on Windows). It belongs to this computer, tracks
+each camera separately and starts with downloads made by this version. Existing
+files and previews do not create historical records. A historical mark never skips
+a new download; Skip Existing checks the actual files in the chosen destination.
 
 In Help, **Check now** looks for a newer published release. Automatic checking is on by
 default. When an update is available, choose **Update now**, **Remind me later**, **Skip

@@ -28,7 +28,7 @@ Este directorio centraliza la documentacion funcional y tecnica del proyecto.
   Paleta y QSS con variables, fuente Inter embebida, iconos SVG, toolbar, estados vacios, carteles de confirmacion, avisos flotantes y Help.
 
 - `session-and-download-behavior.md`
-  Documenta persistencia de ventana y settings, carpeta de descarga, badges Saved/Partial, los carteles de descargar y borrar, los avisos y la estructura final de subcarpetas por grupo.
+  Documenta persistencia de ventana y settings, historial permanente Downloaded/Partial, carpeta de descarga, los carteles de descargar y borrar, los avisos y la estructura final de subcarpetas por grupo.
 
 ## Criterio
 
