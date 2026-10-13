@@ -83,6 +83,7 @@ public:
         sentHello = false;
         epoch = QUuid::createUuid().toString(QUuid::WithoutBraces);
         cameraEpoch = "0";
+        cameraIdentifier.clear();
         buffer.clear(); queue.clear(); active = {}; catalog.clear(); cleanupStage();
         process->start(QCoreApplication::applicationFilePath(), {"--camera-worker"});
     }
@@ -141,7 +142,8 @@ public:
         if (op == "thumbnail") {
             for (const auto& queued : std::as_const(queue)) {
                 if (queued.value("op").toString() == op
-                    && queued.value("file").toObject().value("path").toString() == file.devicePath) return;
+                    && queued.value("file").toObject().value("path").toString() == file.devicePath
+                    && queued.value("requestId").toString() == QString::number(requestId)) return;
             }
             if (queue.size() >= 64) { reportError("The thumbnail queue is full.", job); return; }
         }
@@ -196,7 +198,12 @@ private:
         const QJsonObject request = job.isEmpty() ? active : job;
         const QString op = request.value("op").toString();
         const auto file = request.value("file").toObject();
-        if (op == "thumbnail") owner->thumbnailFailed(file.value("path").toString());
+        if (op == "thumbnail") {
+            CameraFileInfo requested;
+            if (ThetaCameraWorker::fileFromJson(file, requested))
+                owner->thumbnailResult(requested, QPixmap(), request.value("requestId").toString().toULongLong());
+            if (owner) owner->thumbnailFailed(file.value("path").toString());
+        }
         else if (op == "info") owner->imageInfoFailed(file.value("path").toString(), message,
             request.value("requestId").toString().toULongLong());
         else if (op == "download") owner->downloadError(file.value("name").toString(), message);
@@ -230,6 +237,7 @@ private:
         active.insert("epoch", epoch);
         active.insert("id", QString::number(++nextId));
         active.insert("cameraEpoch", cameraEpoch);
+        activeCameraIdentifier = cameraIdentifier;
         responseSeen = false;
         failed = false;
         const QString op = active.value("op").toString();
@@ -309,10 +317,11 @@ private:
             const QString name = packet.value("name").toString();
             if (name.isEmpty() || (packet.contains("cameraId") && !packet.value("cameraId").isString())) return false;
             connected = true;
-            owner->cameraIdentityReady(packet.value("cameraId").toString());
+            cameraIdentifier = packet.value("cameraId").toString();
+            owner->cameraIdentityReady(cameraIdentifier);
             if (owner) owner->cameraConnected(name);
         } else if (event == "disconnected") {
-            connected = false; catalog.clear(); queue.clear();
+            connected = false; catalog.clear(); queue.clear(); cameraIdentifier.clear();
             owner->cameraDisconnected();
         } else if (event == "catalog") {
             if (!packet.value("files").isArray()) return false;
@@ -327,7 +336,8 @@ private:
                 files.append(file); updated.insert(file.devicePath, file);
             }
             catalog = updated;
-            owner->fileListUpdated(files);
+            owner->catalogReady(cameraIdentifier, files, true);
+            if (owner) owner->fileListUpdated(files);
         } else if (event == "battery") {
             if (!packet.value("available").isBool() || !packet.value("percent").isDouble()) return false;
             const int percent = packet.value("percent").toInt(-1);
@@ -353,13 +363,20 @@ private:
             if (id == "0" || op != "thumbnail" || responseSeen) return false;
             const QString path = active.value("file").toObject().value("path").toString();
             if (packet.value("path").toString() != path) return false;
+            CameraFileInfo requested;
+            if (!ThetaCameraWorker::fileFromJson(active.value("file").toObject(), requested)) return false;
+            const quint64 requestId = active.value("requestId").toString().toULongLong();
             responseSeen = true;
-            if (event == "thumbnailFailed") owner->thumbnailFailed(path);
+            if (event == "thumbnailFailed") {
+                owner->thumbnailResult(requested, QPixmap(), requestId);
+                if (owner) owner->thumbnailFailed(path);
+            }
             else {
                 bool valid = true;
                 const QPixmap pixmap = image(packet, valid);
                 if (!valid || pixmap.isNull()) return false;
-                owner->thumbnailReady(path, pixmap);
+                owner->thumbnailResult(requested, pixmap, requestId);
+                if (owner) owner->thumbnailReady(path, pixmap);
             }
         } else if (event == "imageInfo") {
             if (id == "0" || op != "info" || responseSeen) return false;
@@ -405,7 +422,16 @@ private:
             if (removed.size() + errors.size() != active.value("files").toArray().size()) return false;
             for (const QString& path : removed) catalog.remove(path);
             responseSeen = true;
-            if (!removed.isEmpty()) owner->deleteCompleted(removed);
+            if (!removed.isEmpty()) {
+                QList<CameraFileInfo> successful;
+                for (const auto& value : active.value("files").toArray()) {
+                    CameraFileInfo file;
+                    if (!ThetaCameraWorker::fileFromJson(value.toObject(), file)) return false;
+                    if (removed.contains(file.devicePath)) successful.append(file);
+                }
+                owner->filesDeleted(activeCameraIdentifier, successful);
+                if (owner) owner->deleteCompleted(removed);
+            }
             if (!errors.isEmpty() && owner) owner->deleteError("Failed to delete: " + errors.join(", "));
         } else return false;
         return true;
@@ -414,7 +440,7 @@ private:
     QProcess* process = nullptr;
     QTimer* deadline = nullptr;
     QTimer* killTimer = nullptr;
-    QString epoch, cameraEpoch;
+    QString epoch, cameraEpoch, cameraIdentifier, activeCameraIdentifier;
     quint64 nextId = 0;
     QQueue<QJsonObject> queue;
     QJsonObject active;
@@ -431,7 +457,7 @@ void ThetaBridge::startBrowsing() { d->start(); }
 void ThetaBridge::stopBrowsing() { d->stop(); }
 void ThetaBridge::refreshCatalog() { d->refresh(false); }
 void ThetaBridge::recoverDownloadSession() { d->refresh(true); }
-void ThetaBridge::requestThumbnail(const CameraFileInfo& file) { d->request("thumbnail", file); }
+void ThetaBridge::requestThumbnail(const CameraFileInfo& file, quint64 requestId) { d->request("thumbnail", file, {}, requestId); }
 void ThetaBridge::requestImageInfo(const CameraFileInfo& file, quint64 requestId) { d->request("info", file, {}, requestId); }
 void ThetaBridge::requestDownloadFile(const CameraFileInfo& file, const QString& directory) { d->request("download", file, directory); }
 void ThetaBridge::requestDownloadFiles(const QList<CameraFileInfo>& files, const QString& directory)

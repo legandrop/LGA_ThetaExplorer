@@ -1,5 +1,15 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.022:
+- Los callbacks diferidos de ImageCaptureCore conservan una copia propia de la identidad de cada miniatura y cabecera. Evita leer una referencia local ya destruida, que hacia descartar las miniaturas y dejaba vacia la cache de imagenes en macOS.
+- [ Imagenes - Cache por camara y callbacks Mac seguros ]
+
+v1.021:
+- Las miniaturas JPG/RAW, los metadatos de brackets y los JPG usados por el Viewer se conservan en una cache persistente separada por numero de serie de camara y por identidad de archivo. Reconectar o reiniciar reutiliza las imagenes disponibles sin pedirlas otra vez; los previews no generan marcas de descarga.
+- La cache retira solamente los archivos ausentes en un catalogo completo confirmado o los borrados exitosos de Delete. Una lista inicial parcial, una desconexion o un error no limpia imagenes; cambiar de camara, fecha, tamaño o identificador de archivo evita reutilizar otra toma. Las respuestas tardias de miniaturas se validan por peticion e identidad.
+- Help conserva los controles de actualizacion y elimina la linea de teclas del dialogo de updates.
+- [ Imagenes - Cache persistente por camara y Help limpio ]
+
 v1.020:
 - El nombre de camara, bateria y Refresh quedan juntos en un bloque compacto; Help conserva el extremo derecho. Refresh y Help usan trazos finos de18px y los grises de la paleta, sin blanco intenso. El nombre de camara baja a peso regular.
 - El destino incluye Browse y un fondo con borde y hover en toda la fila para identificarlo como clickeable. Delete y Download muestran solamente texto y ambos indican la cantidad de capturas seleccionadas; sus confirmaciones y acciones conservan los archivos completos de cada captura.

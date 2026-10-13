@@ -99,14 +99,20 @@ o el plugin TLS `libqsecuretransportbackend.dylib`.
 
 ## Preview panoramico
 
-La seleccion de una imagen JPEG copia solamente su representante a una carpeta temporal
-propia de la sesion, sin borrar ni alterar la camara o la carpeta de descargas. La copia
+La seleccion de una imagen JPEG copia solamente su representante a la cache propia
+de esa camara, sin borrar ni alterar la camara o la carpeta de descargas. La copia
 comparte la cola serial de Download, con prioridad para las descargas elegidas por el
 usuario. Navegar rapido conserva solo el ultimo preview pendiente; las miniaturas esperan
 mientras hay una transferencia. Las señales y contadores de Download no incluyen previews.
-El servicio conserva hasta ocho copias y las retira al cerrar; una copia disponible evita
-otra transferencia. Desconectar invalida ese cache. Los errores se muestran brevemente y
-quedan en el log; volver a seleccionar permite reintentar.
+Las miniaturas, los previews JPEG y los metadatos de brackets sobreviven al cierre y la
+desconexion en `QStandardPaths::CacheLocation/camera-media`, separados por numero de serie
+y por ruta/nombre/tamaño/fecha UTC/UID de archivo. Solamente se copian los previews solicitados;
+las panoramicas se vuelven a generar desde ese JPEG local. Las entradas desaparecen cuando
+un catalogo completo confirma que ya no estan en la camara o tras un Delete exitoso; una lista
+parcial, un error o una desconexion no limpian la cache. Cada camara conserva su propio
+contenido hasta volver a consultar su catalogo. Sin identidad fiable o si no se puede escribir
+la cache, el preview puede usar el destino temporal de la sesion. Los errores se muestran
+brevemente y quedan en el log; volver a seleccionar permite reintentar.
 
 `DualFisheyePreview` identifica ImageType en los metadatos EXIF/RICOH:1 es panoramico y se
 muestra sin reproyectar;2 corresponde a lentes girados;3 a lentes ya orientados. Una
@@ -155,6 +161,7 @@ Tambien incluye **Check for updates automatically**, activado inicialmente y per
 `Updates/AutomaticChecks` del mismo INI, y **Check now**, deshabilitado con texto Checking
 mientras consulta. Los resultados manuales aparecen por encima del Help; una version nueva
 cierra el Help antes de presentar la oferta de actualizacion.
+No se muestra la lista de teclas del dialogo de actualizacion dentro del Help.
 
 ## Actualizaciones
 

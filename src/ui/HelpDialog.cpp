@@ -191,10 +191,6 @@ HelpDialog::HelpDialog(const QString& downloadFolder, QWidget* parent, LgaUpdate
         updateRow->addStretch();
         updateRow->addWidget(check);
         root->addLayout(updateRow);
-        root->addSpacing(8);
-        auto* updateKeys = description("Update dialog: U — update, R — remind later, S — skip, C / Esc — cancel.", this);
-        updateKeys->setWordWrap(true);
-        root->addWidget(updateKeys);
     }
 
     // ---- Atajos ----

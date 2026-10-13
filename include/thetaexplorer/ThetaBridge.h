@@ -21,7 +21,7 @@ public:
     void refreshCatalog();
     void recoverDownloadSession();
 
-    void requestThumbnail(const CameraFileInfo& file);
+    void requestThumbnail(const CameraFileInfo& file, quint64 requestId = 0);
     void requestImageInfo(const CameraFileInfo& file, quint64 requestId);
     void requestDownloadFile(const CameraFileInfo& file,
                              const QString& destinationPath);
@@ -38,10 +38,12 @@ signals:
 
     // File list - emitted once camera catalog is ready
     void fileListUpdated(const QList<CameraFileInfo>& files);
+    void catalogReady(const QString& cameraIdentifier, const QList<CameraFileInfo>& files, bool complete);
 
     // Thumbnails - emitted per-file as they arrive asynchronously
     void thumbnailReady(const QString& devicePath, const QPixmap& thumbnail);
     void thumbnailFailed(const QString& devicePath);
+    void thumbnailResult(const CameraFileInfo& file, const QPixmap& thumbnail, quint64 requestId);
     void imageInfoReady(const CameraFileInfo& file, const QPixmap& thumbnail, quint64 requestId);
     void imageInfoFailed(const QString& devicePath, const QString& message, quint64 requestId);
 
@@ -53,6 +55,7 @@ signals:
 
     // Delete
     void deleteCompleted(const QStringList& deletedPaths);
+    void filesDeleted(const QString& cameraIdentifier, const QList<CameraFileInfo>& files);
     void deleteError(const QString& errorMessage);
 
 // These are intentionally public so ThetaBridgePrivate (in .mm) can call them

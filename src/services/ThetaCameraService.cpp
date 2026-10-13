@@ -2,6 +2,8 @@
 #include "thetaexplorer/ThetaBridge.h"
 #include "thetaexplorer/Logger.h"
 #include "thetaexplorer/HdrGroupingService.h"
+#include "thetaexplorer/CameraMediaCache.h"
+#include "thetaexplorer/AppPaths.h"
 #include <QSet>
 #include <QTimer>
 #include <QTemporaryDir>
@@ -12,12 +14,25 @@
 #include <QRegularExpression>
 #include <QPointer>
 #include <algorithm>
+#include <utility>
 
 namespace {
 QString previewKey(const CameraFileInfo& file)
 {
-    return file.devicePath + '|' + QString::number(file.sizeBytes) + '|'
-        + file.creationDate.toString(Qt::ISODateWithMs) + '|' + file.persistentId;
+    return file.devicePath + '|' + file.name + '|' + QString::number(file.sizeBytes) + '|'
+        + file.creationDate.toUTC().toString(Qt::ISODateWithMs) + '|' + file.persistentId;
+}
+bool sameFile(const CameraFileInfo& a, const CameraFileInfo& b)
+{
+    return a.devicePath == b.devicePath && a.name == b.name && a.sizeBytes == b.sizeBytes
+        && a.creationDate == b.creationDate && a.persistentId == b.persistentId;
+}
+bool mediaFile(const CameraFileInfo& file)
+{
+    const QString extension = QFileInfo(file.name).suffix().toLower();
+    return file.isRaw || file.isVideo || extension == "jpg" || extension == "jpeg"
+        || extension == "dng" || extension == "arw" || extension == "cr2" || extension == "nef"
+        || extension == "mp4" || extension == "mov";
 }
 }
 
@@ -25,8 +40,21 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
     : QObject(parent)
 {
     m_bridge = new ThetaBridge(this);
+    m_mediaCache = std::make_unique<CameraMediaCache>(AppPaths::mediaCacheDirectory());
 
     connect(m_bridge, &ThetaBridge::cameraIdentityReady, this, [this](const QString& identifier) {
+        if (identifier != m_cameraIdentifier) {
+            m_files.clear();
+            m_catalogComplete = false;
+            m_pendingThumbnails.clear(); m_thumbnailQueue.clear();
+            m_rawThumbnailCache.clear(); m_rawFallbackAttempted.clear();
+            m_previewCache.clear(); m_previewCacheOrder.clear();
+            m_pendingPreview = CameraFileInfo{};
+            m_imageInfoQueue.clear(); m_imageInfoActive = false;
+            m_catalogEnrichmentPending = false;
+            ++m_imageInfoRequestId;
+            if (m_imageInfoTimer) m_imageInfoTimer->stop();
+        }
         m_cameraIdentifier = identifier;
     });
 
@@ -40,6 +68,8 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
             this, [this]() {
                 m_connected = false;
                 m_cameraIdentifier.clear();
+                m_catalogComplete = false;
+                m_pendingThumbnails.clear();
                 m_files.clear();
                 if (m_thumbnailTimer) m_thumbnailTimer->stop();
                 m_thumbnailQueue.clear();
@@ -67,22 +97,12 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
                 emit cameraDisconnected();
             });
 
-    connect(m_bridge, &ThetaBridge::fileListUpdated,
-            this, &ThetaCameraService::onFileListUpdated);
-
-    connect(m_bridge, &ThetaBridge::thumbnailReady,
-            this, &ThetaCameraService::thumbnailReady);
-    connect(m_bridge, &ThetaBridge::thumbnailFailed, this, [this](const QString& path) {
-        const auto found = std::find_if(m_files.cbegin(), m_files.cend(), [&path](const CameraFileInfo& file) {
-            return file.devicePath == path;
-        });
-        if (found == m_files.cend() || !found->isRaw) return;
-        if (m_rawThumbnailCache.contains(path)) { emit thumbnailReady(path, m_rawThumbnailCache.value(path)); return; }
-        if (m_rawFallbackAttempted.contains(path)) return;
-        m_rawFallbackAttempted.insert(path);
-        m_imageInfoQueue.append(*found);
-        m_thumbnailTimer->start();
+    connect(m_bridge, &ThetaBridge::catalogReady, this, [this](const QString& camera, const auto& files, bool complete) {
+        if (camera != m_cameraIdentifier || !m_connected) return;
+        m_catalogComplete = complete;
+        onFileListUpdated(files);
     });
+    connect(m_bridge, &ThetaBridge::thumbnailResult, this, &ThetaCameraService::acceptThumbnail);
     connect(m_bridge, &ThetaBridge::imageInfoReady, this,
             [this](const CameraFileInfo& file, const QPixmap& thumbnail, quint64 id) {
         finishImageInfo(file, thumbnail, QString(), id);
@@ -104,8 +124,16 @@ ThetaCameraService::ThetaCameraService(QObject* parent)
     connect(m_bridge, &ThetaBridge::downloadError,
             this, &ThetaCameraService::onBridgeDownloadError);
 
-    connect(m_bridge, &ThetaBridge::deleteCompleted,
-            this, &ThetaCameraService::onBridgeDeleteCompleted);
+    connect(m_bridge, &ThetaBridge::filesDeleted, this, [this](const QString& camera, const auto& files) {
+        if (!m_deleteActive || camera != m_cameraIdentifier || camera != m_pendingDeleteCameraIdentifier) return;
+        QStringList paths;
+        for (const auto& file : files) {
+            const bool requested = std::any_of(m_pendingDeleteFiles.cbegin(), m_pendingDeleteFiles.cend(),
+                [&file](const auto& selected) { return sameFile(file, selected); });
+            if (requested && currentFile(file) && !paths.contains(file.devicePath)) paths.append(file.devicePath);
+        }
+        if (!paths.isEmpty()) onBridgeDeleteCompleted(paths);
+    });
 
     connect(m_bridge, &ThetaBridge::deleteError,
             this, &ThetaCameraService::onBridgeDeleteError);
@@ -151,6 +179,8 @@ void ThetaCameraService::start()
 void ThetaCameraService::stop()
 {
     m_cameraIdentifier.clear();
+    m_catalogComplete = false;
+    m_pendingThumbnails.clear();
     if (m_thumbnailTimer) m_thumbnailTimer->stop();
     if (m_imageInfoTimer) m_imageInfoTimer->stop();
     m_imageInfoQueue.clear();
@@ -175,6 +205,7 @@ void ThetaCameraService::refresh()
     LOGI("service") << "Refreshing camera browsing";
     if (m_thumbnailTimer) m_thumbnailTimer->stop();
     m_thumbnailQueue.clear();
+    m_pendingThumbnails.clear();
     m_bridge->refreshCatalog();
 }
 
@@ -183,12 +214,26 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
     // The bridge already debounces (300ms GCD) so this should fire only once
     // per connection burst. We always accept the new list.
     LOGI("service") << "fileListUpdated:" << files.size() << "files";
+    m_pendingThumbnails.clear();
 
     QList<CameraFileInfo> updated = files;
+    QSet<QString> paths;
+    for (const auto& file : updated) {
+        if (file.devicePath.isEmpty() || file.name.isEmpty() || paths.contains(file.devicePath)) {
+            m_catalogComplete = false;
+            LOGW("service") << "Se descartó un catálogo con rutas vacías o ambiguas";
+            return;
+        }
+        paths.insert(file.devicePath);
+    }
+    if (m_catalogComplete && m_cameraIdentifier.startsWith("serial:")
+        && !m_cameraIdentifier.mid(7).trimmed().isEmpty()
+        && std::all_of(updated.cbegin(), updated.cend(), [this](const auto& file) { return !mediaFile(file) || cacheEligible(file); })) {
+        if (!m_mediaCache->reconcile(m_cameraIdentifier, updated)) warnCacheFailure();
+    }
     for (CameraFileInfo& file : updated) {
         const auto old = std::find_if(m_files.cbegin(), m_files.cend(), [&file](const CameraFileInfo& previous) {
-            return previous.devicePath == file.devicePath && previous.sizeBytes == file.sizeBytes
-                && previous.creationDate == file.creationDate && previous.persistentId == file.persistentId;
+            return sameFile(previous, file);
         });
         if (old != m_files.cend()) {
             file.exposureMode = old->exposureMode; file.exposureValue = old->exposureValue;
@@ -199,9 +244,11 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
             m_rawThumbnailCache.remove(file.devicePath);
             m_rawFallbackAttempted.remove(file.devicePath);
         }
+        if (cacheEligible(file)) m_mediaCache->enrichMetadata(m_cameraIdentifier, file);
     }
     m_files = updated;
-    if (m_deleteActive || m_waitingForDeleteVerification) {
+    if (m_catalogComplete && m_pendingDeleteCameraIdentifier == m_cameraIdentifier
+        && (m_deleteActive || m_waitingForDeleteVerification)) {
         QSet<QString> remainingPaths;
         remainingPaths.reserve(m_files.size());
         for (const CameraFileInfo& file : m_files) {
@@ -219,6 +266,10 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
         }
 
         if (!deletedPaths.isEmpty()) {
+            QList<CameraFileInfo> deletedFiles;
+            for (const auto& file : m_pendingDeleteFiles)
+                if (deletedPaths.contains(file.devicePath) && cacheEligible(file)) deletedFiles.append(file);
+            if (!deletedFiles.isEmpty() && !m_mediaCache->removeFiles(m_cameraIdentifier, deletedFiles)) warnCacheFailure();
             LOGI("service") << "Verified deleted files via refreshed catalog:"
                             << deletedPaths;
             m_deleteActive = false;
@@ -299,20 +350,21 @@ void ThetaCameraService::publishCatalog()
 void ThetaCameraService::finishImageInfo(const CameraFileInfo& file, const QPixmap& thumbnail,
                                         const QString& error, quint64 requestId)
 {
-    if (!m_imageInfoActive || requestId != m_imageInfoRequestId || file.devicePath != m_activeImageInfo.devicePath) return;
+    if (!m_imageInfoActive || requestId != m_imageInfoRequestId || !sameFile(file, m_activeImageInfo)
+        || m_activeImageInfoCameraIdentifier != m_cameraIdentifier) return;
     m_imageInfoTimer->stop();
     m_imageInfoActive = false;
     const auto current = std::find_if(m_files.begin(), m_files.end(), [&file](const CameraFileInfo& value) {
-        return value.devicePath == file.devicePath && value.nativeFileHandle == file.nativeFileHandle
-            && value.sizeBytes == file.sizeBytes && value.creationDate == file.creationDate
-            && value.persistentId == file.persistentId;
+        return sameFile(value, file) && value.nativeFileHandle == file.nativeFileHandle;
     });
     if (current != m_files.end()) {
         if (error.isEmpty()) {
             current->exposureMode = file.exposureMode; current->exposureValue = file.exposureValue;
             current->exposureTime = file.exposureTime;
             current->width = file.width; current->height = file.height;
+            if (cacheEligible(*current) && !m_mediaCache->storeMetadata(m_cameraIdentifier, *current)) warnCacheFailure();
             if (!thumbnail.isNull()) {
+                if (cacheEligible(*current) && !m_mediaCache->storeThumbnail(m_cameraIdentifier, *current, thumbnail)) warnCacheFailure();
                 if (m_rawThumbnailCache.size() >= 8 && !m_rawThumbnailCache.contains(file.devicePath)) m_rawThumbnailCache.erase(m_rawThumbnailCache.begin());
                 m_rawThumbnailCache.insert(file.devicePath, thumbnail);
                 emit thumbnailReady(file.devicePath, thumbnail);
@@ -336,6 +388,7 @@ void ThetaCameraService::drainThumbnailQueue()
     if (!m_catalogEnrichmentPending && !m_downloadQueue.isEmpty()) { kickNextDownload(); return; }
     if (!m_imageInfoQueue.isEmpty()) {
         m_activeImageInfo = m_imageInfoQueue.takeFirst();
+        m_activeImageInfoCameraIdentifier = m_cameraIdentifier;
         m_imageInfoActive = true;
         ++m_imageInfoRequestId;
         emit previewActivityChanged(true);
@@ -347,7 +400,7 @@ void ThetaCameraService::drainThumbnailQueue()
     // Request 3 thumbnails per tick to avoid overwhelming the camera
     for (int i = 0; i < 3 && !m_thumbnailQueue.isEmpty(); ++i) {
         CameraFileInfo fi = m_thumbnailQueue.takeFirst();
-        m_bridge->requestThumbnail(fi);
+        requestThumbnail(fi);
     }
     if (m_thumbnailQueue.isEmpty()) {
         m_thumbnailTimer->stop();
@@ -357,6 +410,11 @@ void ThetaCameraService::drainThumbnailQueue()
 
 void ThetaCameraService::requestThumbnail(const CameraFileInfo& file)
 {
+    if (!m_connected || !currentFile(file)) return;
+    if (cacheEligible(file)) {
+        const QPixmap image = m_mediaCache->thumbnail(m_cameraIdentifier, file);
+        if (!image.isNull()) { emit thumbnailReady(file.devicePath, image); return; }
+    }
     if (m_rawThumbnailCache.contains(file.devicePath)) {
         emit thumbnailReady(file.devicePath, m_rawThumbnailCache.value(file.devicePath)); return;
     }
@@ -366,7 +424,50 @@ void ThetaCameraService::requestThumbnail(const CameraFileInfo& file)
         m_thumbnailTimer->start();
         return;
     }
-    m_bridge->requestThumbnail(file);
+    for (const auto& pending : std::as_const(m_pendingThumbnails))
+        if (pending.cameraIdentifier == m_cameraIdentifier && sameFile(pending.file, file)) return;
+    const quint64 requestId = ++m_thumbnailRequestId;
+    m_pendingThumbnails.insert(requestId, {file, m_cameraIdentifier});
+    m_bridge->requestThumbnail(file, requestId);
+}
+
+bool ThetaCameraService::currentFile(const CameraFileInfo& file) const
+{
+    return std::any_of(m_files.cbegin(), m_files.cend(), [&file](const auto& current) { return sameFile(current, file); });
+}
+
+bool ThetaCameraService::cacheEligible(const CameraFileInfo& file) const
+{
+    return m_cameraIdentifier.startsWith("serial:") && !m_cameraIdentifier.mid(7).trimmed().isEmpty()
+        && mediaFile(file)
+        && !file.devicePath.isEmpty() && !file.name.isEmpty() && !file.name.contains('/') && !file.name.contains('\\')
+        && file.name != "." && file.name != ".." && file.sizeBytes > 0
+        && (file.creationDate.isValid() || !file.persistentId.isEmpty());
+}
+
+void ThetaCameraService::warnCacheFailure()
+{
+    if (m_cacheWarningShown) return;
+    m_cacheWarningShown = true;
+    LOGW("service") << "No se pudo actualizar la cache local; se mantiene la transferencia actual:"
+                    << m_mediaCache->errorString();
+}
+
+void ThetaCameraService::acceptThumbnail(const CameraFileInfo& file, const QPixmap& thumbnail, quint64 requestId)
+{
+    const auto found = m_pendingThumbnails.find(requestId);
+    if (found == m_pendingThumbnails.end()) return;
+    const PendingThumbnail pending = found.value();
+    m_pendingThumbnails.erase(found);
+    if (pending.cameraIdentifier != m_cameraIdentifier || !sameFile(pending.file, file) || !currentFile(file)) return;
+    if (!thumbnail.isNull()) {
+        if (cacheEligible(file) && !m_mediaCache->storeThumbnail(m_cameraIdentifier, file, thumbnail)) warnCacheFailure();
+        emit thumbnailReady(file.devicePath, thumbnail);
+    } else if (file.isRaw && !m_rawFallbackAttempted.contains(file.devicePath)) {
+        m_rawFallbackAttempted.insert(file.devicePath);
+        m_imageInfoQueue.append(file);
+        m_thumbnailTimer->start();
+    }
 }
 
 void ThetaCameraService::requestPreview(const CameraFileInfo& file)
@@ -385,6 +486,10 @@ void ThetaCameraService::requestPreview(const CameraFileInfo& file)
 
     // Una sola pendiente: navegar rapido no descarga todos los items intermedios.
     m_pendingPreview = CameraFileInfo{};
+    if (cacheEligible(current)) {
+        const QString path = m_mediaCache->previewFile(m_cameraIdentifier, current);
+        if (!path.isEmpty()) { emit previewFileReady(current.devicePath, path); return; }
+    }
     const QString key = previewKey(current);
     const QString cached = m_previewCache.value(key);
     if (!cached.isEmpty() && QFileInfo(cached).size() == current.sizeBytes) {
@@ -423,6 +528,7 @@ void ThetaCameraService::deleteFiles(const QList<CameraFileInfo>& files)
         return;
     }
     m_pendingDeleteFiles = files;
+    m_pendingDeleteCameraIdentifier = m_cameraIdentifier;
     m_deleteActive = !files.isEmpty();
     m_waitingForDeleteVerification = false;
     if (m_deleteTimer) {
@@ -452,6 +558,7 @@ void ThetaCameraService::onBridgeDownloadFileCompleted(const QString& fileName,
         return;
     }
     if (m_activeDownload.preview) {
+        const PendingDownload completed = m_activeDownload;
         const CameraFileInfo file = m_activeDownload.file;
         const QString destination = m_activeDownload.destinationPath;
         // ImageCaptureCore puede devolver solo ICSavedFilename, relativo al destino.
@@ -459,20 +566,28 @@ void ThetaCameraService::onBridgeDownloadFileCompleted(const QString& fileName,
             : QDir(destination).filePath(savedPath.isEmpty() ? file.name : savedPath);
         const QFileInfo received(resolvedPath);
         const QString expected = QFileInfo(QDir(destination).filePath(file.name)).canonicalFilePath();
-        const bool valid = !expected.isEmpty() && received.canonicalFilePath() == expected
+        const bool valid = completed.cameraIdentifier == m_cameraIdentifier && currentFile(file)
+            && !expected.isEmpty() && received.isFile() && received.canonicalFilePath() == expected
             && received.fileName() == file.name && received.size() == file.sizeBytes;
         m_downloadActive = false;
         m_activeDownload = PendingDownload{};
         if (valid) {
-            const QString key = previewKey(file);
-            m_previewCache.insert(key, received.canonicalFilePath());
-            m_previewCacheOrder.removeAll(key);
-            m_previewCacheOrder.append(key);
-            while (m_previewCacheOrder.size() > 8) {
-                const QString expired = m_previewCacheOrder.takeFirst();
-                QFile::remove(m_previewCache.take(expired));
+            QString readyPath = received.canonicalFilePath();
+            if (completed.persistentPreview) {
+                if (m_mediaCache->commitPreview(m_cameraIdentifier, file, readyPath))
+                    readyPath = m_mediaCache->previewFile(m_cameraIdentifier, file);
+                else warnCacheFailure();
+            } else {
+                const QString key = previewKey(file);
+                m_previewCache.insert(key, readyPath);
+                m_previewCacheOrder.removeAll(key);
+                m_previewCacheOrder.append(key);
+                while (m_previewCacheOrder.size() > 8) {
+                    const QString expired = m_previewCacheOrder.takeFirst();
+                    QFile::remove(m_previewCache.take(expired));
+                }
             }
-            emit previewFileReady(file.devicePath, received.canonicalFilePath());
+            emit previewFileReady(file.devicePath, readyPath);
         } else {
             LOGW("service") << "La copia de preview no coincide con el archivo solicitado:" << file.name;
             emit previewError(file.devicePath, "The camera preview could not be read.");
@@ -617,16 +732,24 @@ void ThetaCameraService::kickNextDownload()
         });
         if (current == m_files.cend()) return;
         const CameraFileInfo file = *current;
-        if (!m_previewDirectory) m_previewDirectory = std::make_unique<QTemporaryDir>(
-            QDir::tempPath() + "/ThetaExplorer-preview-XXXXXX");
-        const QString directory = m_previewDirectory->path() + '/' + QString::fromLatin1(
-            QCryptographicHash::hash(previewKey(file).toUtf8(), QCryptographicHash::Sha256).toHex());
-        if (!m_previewDirectory->isValid() || !QDir().mkpath(directory)) {
-            LOGW("service") << "No se pudo crear el destino temporal del preview";
-            emit previewError(file.devicePath, "The preview cache could not be created.");
-            return;
+        QString directory;
+        if (cacheEligible(file)) {
+            directory = m_mediaCache->preparePreviewDirectory(m_cameraIdentifier, file);
+            if (directory.isEmpty()) warnCacheFailure();
         }
-        m_activeDownload = PendingDownload{file, directory, 1, true, m_cameraIdentifier};
+        const bool persistent = !directory.isEmpty();
+        if (!persistent) {
+            if (!m_previewDirectory) m_previewDirectory = std::make_unique<QTemporaryDir>(
+                QDir::tempPath() + "/ThetaExplorer-preview-XXXXXX");
+            directory = m_previewDirectory->path() + '/' + QString::fromLatin1(
+                QCryptographicHash::hash(previewKey(file).toUtf8(), QCryptographicHash::Sha256).toHex());
+            if (!m_previewDirectory->isValid() || !QDir().mkpath(directory)) {
+                LOGW("service") << "No se pudo crear el destino temporal del preview";
+                emit previewError(file.devicePath, "The preview cache could not be created.");
+                return;
+            }
+        }
+        m_activeDownload = PendingDownload{file, directory, 1, true, m_cameraIdentifier, persistent};
     } else {
         return;
     }
@@ -641,6 +764,10 @@ void ThetaCameraService::kickNextDownload()
 
 void ThetaCameraService::onBridgeDeleteCompleted(const QStringList& deletedPaths)
 {
+    QList<CameraFileInfo> deletedFiles;
+    for (const auto& file : m_pendingDeleteFiles)
+        if (deletedPaths.contains(file.devicePath) && cacheEligible(file)) deletedFiles.append(file);
+    if (!deletedFiles.isEmpty() && !m_mediaCache->removeFiles(m_pendingDeleteCameraIdentifier, deletedFiles)) warnCacheFailure();
     if (m_deleteTimer) m_deleteTimer->stop();
     m_deleteActive = false;
     m_waitingForDeleteVerification = false;

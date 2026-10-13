@@ -19,6 +19,7 @@
 #include <QPixmap>
 #include <QImage>
 #include <QPointer>
+#include <QSet>
 #include <QtEndian>
 #include <CoreGraphics/CoreGraphics.h>
 #include <vector>
@@ -67,6 +68,14 @@ void ThetaBridge::startBrowsing()
 
 void ThetaBridge::stopBrowsing()
 {
+    if (d->cameraDel) {
+        if (d->cameraDel.pendingEnumeration) dispatch_block_cancel(d->cameraDel.pendingEnumeration);
+        d->cameraDel.pendingEnumeration = nil;
+        d->cameraDel.qtBridge = nullptr;
+        d->cameraDel.camera.delegate = nil;
+        d->cameraDel = nil;
+    }
+    if (d->browserDel) d->browserDel.qtBridge = nullptr;
     if (d->browser) {
         [d->browser stop];
         d->browser.delegate = nil;
@@ -100,11 +109,32 @@ void ThetaBridge::recoverDownloadSession()
     startBrowsing();
 }
 
-void ThetaBridge::requestThumbnail(const CameraFileInfo& file)
+void ThetaBridge::requestThumbnail(const CameraFileInfo& file, quint64 requestId)
 {
     if (!d->cameraDel || !d->cameraDel.camera) return;
     ICCameraFile* icFile = (__bridge ICCameraFile*)file.nativeFileHandle;
-    if (icFile) [icFile requestThumbnail];
+    if (!icFile) return;
+    // Los blocks conservan referencias C++: el DTO local necesita copia propia.
+    const CameraFileInfo requested = file;
+    const QPointer<ThetaBridge> guard(this);
+    [icFile requestThumbnailDataWithOptions:nil completion:^(NSData* data, NSError* error) {
+        // ICC entrega el bloque en cualquier cola; QPixmap y señales van al hilo Qt principal.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (!guard) return;
+            QPixmap thumbnail;
+            if (!error && data && data.length <= 4 * 1024 * 1024) {
+                const QByteArray bytes(static_cast<const char*>(data.bytes), int(data.length));
+                thumbnail = QPixmap::fromImage(QImage::fromData(bytes));
+            }
+            if (error) {
+                LOGW("bridge") << "No se pudo leer la miniatura:" << QString::fromNSString(error.localizedDescription);
+            }
+            emit guard->thumbnailResult(requested, thumbnail, requestId);
+            if (!guard) return;
+            if (thumbnail.isNull()) emit guard->thumbnailFailed(requested.devicePath);
+            else emit guard->thumbnailReady(requested.devicePath, thumbnail);
+        });
+    }];
 }
 
 void ThetaBridge::requestDownloadFile(const CameraFileInfo& file,
@@ -158,6 +188,9 @@ void ThetaBridge::requestDeleteFiles(const QList<CameraFileInfo>& files)
     }
 
     ICCameraDevice* camera = d->cameraDel.camera;
+    const QString serial = QString::fromNSString(camera.serialNumberString ?: @"").trimmed().toUpper();
+    const QString cameraIdentifier = serial.isEmpty() ? QString() : QStringLiteral("serial:") + serial;
+    const QList<CameraFileInfo> requestedFiles = files;
     NSMutableArray<ICCameraItem*>* icFiles = [NSMutableArray array];
     QStringList fileNames;
     QStringList filePaths;
@@ -257,6 +290,15 @@ void ThetaBridge::requestDeleteFiles(const QList<CameraFileInfo>& files)
                                << "errorDomain:" << (error ? QString::fromNSString(error.domain ?: @"") : QString());
 
                 if (!successPaths.isEmpty()) {
+                    QList<CameraFileInfo> successful;
+                    for (ICCameraItem* item in successItems ?: @[]) {
+                        const void* nativeItem = (__bridge void*)item;
+                        const auto found = std::find_if(requestedFiles.cbegin(), requestedFiles.cend(),
+                            [nativeItem](const CameraFileInfo& file) { return file.nativeFileHandle == nativeItem; });
+                        if (found != requestedFiles.cend()) successful.append(*found);
+                    }
+                    if (!successful.isEmpty()) QMetaObject::invokeMethod(strongBridge, "filesDeleted",
+                        Qt::QueuedConnection, Q_ARG(QString, cameraIdentifier), Q_ARG(QList<CameraFileInfo>, successful));
                     QMetaObject::invokeMethod(strongBridge, "deleteCompleted",
                                               Qt::QueuedConnection,
                                               Q_ARG(QStringList, successPaths));
@@ -321,6 +363,7 @@ void ThetaBridge::requestImageInfo(const CameraFileInfo& file, quint64 requestId
         emit imageInfoFailed(file.devicePath, "The camera image is no longer available.", requestId);
         return;
     }
+    const CameraFileInfo requested = file;
     const QPointer<ThetaBridge> guard(this);
     // EXIF y preview embebido de la Z1 caben en la cabecera: no copiar el RAW entero.
     const off_t length = std::min<qint64>(file.sizeBytes, 1024 * 1024);
@@ -328,17 +371,17 @@ void ThetaBridge::requestImageInfo(const CameraFileInfo& file, quint64 requestId
         dispatch_async(dispatch_get_main_queue(), ^{
             if (!guard) return;
             if (error || !data.length) {
-                emit guard->imageInfoFailed(file.devicePath, error
+                emit guard->imageInfoFailed(requested.devicePath, error
                     ? QString::fromNSString(error.localizedDescription)
                     : QString("The image header could not be read."), requestId);
                 return;
             }
             CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, nullptr);
             if (!source) {
-                emit guard->imageInfoFailed(file.devicePath, "The image header is not readable.", requestId);
+                emit guard->imageInfoFailed(requested.devicePath, "The image header is not readable.", requestId);
                 return;
             }
-            CameraFileInfo enriched = file;
+            CameraFileInfo enriched = requested;
             CFDictionaryRef properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nullptr);
             if (properties) {
                 NSDictionary* values = (__bridge NSDictionary*)properties;
@@ -365,7 +408,7 @@ void ThetaBridge::requestImageInfo(const CameraFileInfo& file, quint64 requestId
                 CFRelease(properties);
             }
             QPixmap thumbnail;
-            if (file.isRaw) {
+            if (requested.isRaw) {
                 NSDictionary* options = @{(__bridge NSString*)kCGImageSourceThumbnailMaxPixelSize:@1000,
                     (__bridge NSString*)kCGImageSourceCreateThumbnailFromImageIfAbsent:@YES,
                     (__bridge NSString*)kCGImageSourceCreateThumbnailWithTransform:@YES};
@@ -373,8 +416,8 @@ void ThetaBridge::requestImageInfo(const CameraFileInfo& file, quint64 requestId
                 if (image) { thumbnail = cgImageToQPixmap(image); CGImageRelease(image); }
             }
             CFRelease(source);
-            if (file.isRaw && thumbnail.isNull()) {
-                emit guard->imageInfoFailed(file.devicePath, "The RAW embedded preview could not be read.", requestId);
+            if (requested.isRaw && thumbnail.isNull()) {
+                emit guard->imageInfoFailed(requested.devicePath, "The RAW embedded preview could not be read.", requestId);
             } else {
                 emit guard->imageInfoReady(enriched, thumbnail, requestId);
             }
@@ -419,6 +462,7 @@ static NSData* makePTPCommandData(uint16_t operationCode,
          didAddDevice:(ICDevice*)addedDevice
            moreComing:(BOOL)moreComing
 {
+    if (!self.qtBridge) return;
     NSString* devName = addedDevice.name ?: @"(unnamed)";
     NSString* devType = NSStringFromClass([addedDevice class]);
     LOGD("bridge") << "Device found:"
@@ -813,16 +857,18 @@ static NSData* makePTPCommandData(uint16_t operationCode,
 - (void)enumerateFiles
 {
     self.pendingEnumeration = nil;
-    if (!self.camera) return;
+    if (!self.camera || !self.qtBridge || self.qtBridge->d->cameraDel != self) return;
 
     NSArray<ICCameraItem*>* allItems = self.camera.mediaFiles;
+    bool complete = allItems && self.camera.contentCatalogPercentCompleted == 100;
     if (!allItems) allItems = @[];
 
     QList<CameraFileInfo> fileList;
     fileList.reserve((int)allItems.count);
+    QSet<QString> paths;
 
     for (ICCameraItem* item in allItems) {
-        if (![item isKindOfClass:[ICCameraFile class]]) continue;
+        if (![item isKindOfClass:[ICCameraFile class]]) { complete = false; continue; }
         ICCameraFile* f = (ICCameraFile*)item;
 
         CameraFileInfo info;
@@ -833,6 +879,8 @@ static NSData* makePTPCommandData(uint16_t operationCode,
         NSString* syspath   = f.fileSystemPath;
         info.devicePath     = syspath ? QString::fromNSString(syspath)
                                       : QString::fromNSString(f.name);
+        if (info.name.isEmpty() || info.devicePath.isEmpty() || paths.contains(info.devicePath)) complete = false;
+        paths.insert(info.devicePath);
 
         info.sizeBytes      = (qint64)f.fileSize;
         // width/height: don't access metadataIfAvailable here — it triggers extra
@@ -869,6 +917,11 @@ static NSData* makePTPCommandData(uint16_t operationCode,
     }
 
     LOGI("bridge") << "enumerateFiles emitting" << fileList.size() << "files";
+    const QString serial = QString::fromNSString(self.camera.serialNumberString ?: @"").trimmed().toUpper();
+    const QString identifier = serial.isEmpty() ? QString() : QStringLiteral("serial:") + serial;
+    QMetaObject::invokeMethod(self.qtBridge, "cameraIdentityReady", Qt::QueuedConnection, Q_ARG(QString, identifier));
+    QMetaObject::invokeMethod(self.qtBridge, "catalogReady", Qt::QueuedConnection,
+        Q_ARG(QString, identifier), Q_ARG(QList<CameraFileInfo>, fileList), Q_ARG(bool, complete));
     QMetaObject::invokeMethod(self.qtBridge, "fileListUpdated",
                               Qt::QueuedConnection,
                               Q_ARG(QList<CameraFileInfo>, fileList));

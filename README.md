@@ -23,6 +23,9 @@ with its middle exposure, and you can see at a glance which sets you already dow
 - **Persistent download history.** Verified downloads are marked *Downloaded*, or
   *Partial* when only some files were downloaded. File Info shows the last download
   date. These marks survive moving or deleting your download folder.
+- **Persistent image cache.** Thumbnails and requested JPEG previews are kept separately
+  for each camera and reused after restarting or reconnecting. Confirmed deletions and
+  complete camera scans remove images that are no longer on that camera.
 - **Recent captures stand out.** A capture's date starts bright green (amber for DNG) and
   fades over 28 hours, so a fresh shoot is easy to find.
 - **Folders by format.** DNG and JPG files keep their own folders, named after the
@@ -89,6 +92,11 @@ Download history is stored next to settings in `download-history.json`
 each camera separately and starts with downloads made by this version. Existing
 files and previews do not create historical records. A historical mark never skips
 a new download; Skip Existing checks the actual files in the chosen destination.
+
+The image cache lives in `~/Library/Caches/LGA/ThetaExplorer/camera-media` on macOS
+and `%LOCALAPPDATA%\LGA\ThetaExplorer\cache\camera-media` on Windows. It only keeps
+thumbnails and JPEG previews requested from each camera; it does not count as a download.
+Stitched previews are regenerated from the cached JPEG without another camera transfer.
 
 In Help, **Check now** looks for a newer published release. Automatic checking is on by
 default. When an update is available, choose **Update now**, **Remind me later**, **Skip

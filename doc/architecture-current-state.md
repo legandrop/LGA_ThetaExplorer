@@ -67,6 +67,7 @@ con correspondencia unica. Se conserva la deteccion rapida del plugin para archi
 
 Si falla una miniatura RAW de ImageCaptureCore, el servicio encola la lectura de cabecera y
 reemite thumbnailReady con el preview embebido. Conserva hasta8miniaturas RAW por sesion;
+esas miniaturas tambien se guardan en la cache persistente por camara y archivo,
 no crea archivos de descarga ni cambia los contadores o grupos mostrados. Si no puede leerlo,
 conserva el placeholder, registra el error y avisa; Refresh permite reintentar.
 
@@ -78,12 +79,25 @@ neutra. `PreviewPanel` muestra la toma representativa JPG y `FileMetadataPanel` 
 La seleccion multiple sigue mostrando su informacion conjunta. Detalle de geometria y gestos: `ui.md`.
 
 Los controles se ubican arriba del Viewer y Browse utiliza toda la altura.
-`ThetaCameraService::requestPreview()` copia el representante a un destino temporal propio,
-comparte la cola de Download sin emitir sus señales de progreso/completado y conserva ocho
-copias. El ultimo preview pendiente reemplaza los intermedios; las miniaturas esperan durante
+`ThetaCameraService::requestPreview()` reutiliza el representante JPEG local o lo copia a la
+cache persistente propia de esa camara. Comparte la cola de Download sin emitir sus señales
+de progreso/completado. El ultimo preview pendiente reemplaza los intermedios; las miniaturas esperan durante
 transferencias. `PreviewPanel::showPreviewFile()` decodifica y reproyecta en un worker y descarta
 resultados de otra seleccion. `DualFisheyePreview` identifica EXIF/RICOH antes de convertir;
 el original queda arriba y el panorama aproximado debajo. Las imagenes ya unidas no se deforman.
+
+`CameraMediaCache` guarda PNG de miniaturas, metadatos EXIF conocidos y previews JPEG
+completos bajo CacheLocation/camera-media. Los directorios son hashes del serial y de
+ruta/nombre/tamaño/fechaUTC/UID; no serializa handles. Las escrituras de PNG/JSON son atomicas;
+un preview requiere decode valido, una marca de commit y la identidad/tamaño/ruta esperados.
+La huella SHA256 permite rechazar cambios de contenido aun si conservan el tamaño. Una cache
+invalida es un fallo de lectura y se vuelve a pedir la imagen. La limpieza afecta solamente
+entradas propias de la camara cuyo catalogo completo se acaba de confirmar, o archivos
+borrados exitosamente. No se usa una lista parcial ni un Refresh fallido para podar. Las
+miniaturas tardias se validan con token, camara e identidad antes de mostrarse o guardarse.
+Los blocks de ImageCaptureCore capturan una copia del DTO, porque un parametro C++ por
+referencia conserva esa referencia en un block diferido y puede caducar al volver del request.
+Este almacenamiento no reemplaza el historial permanente de descargas y puede regenerarse.
 
 ### 4. Acciones
 
@@ -111,7 +125,8 @@ persistencia atomica y errores: `session-and-download-behavior.md`.
 - `src/ui/ThumbnailGridWidget.cpp`: seleccion y layout por alturas reales.
 - `src/ui/ThumbnailTileWidget.cpp`: tarjeta compacta con informacion de ambos formatos.
 - `src/ui/MainWindow.cpp`: catalogo y expansion de grupos para descargar/borrar.
-- `src/services/ThetaCameraService.cpp`: cola serial, cache temporal y rutas de preview.
+- `src/services/ThetaCameraService.cpp`: cola serial, identidad y rutas de preview.
+- `src/services/CameraMediaCache.cpp`: imagenes/metadatos persistentes y limpieza por camara.
 - `src/ui/PreviewPanel.cpp`: worker, seleccion vigente y dos areas de imagen.
 - `src/utils/DualFisheyePreview.cpp`: proyeccion EXIF/RICOH y reproyeccion equidistante.
 

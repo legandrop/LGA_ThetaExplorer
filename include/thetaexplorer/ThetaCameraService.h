@@ -10,6 +10,7 @@
 
 class ThetaBridge;
 class QTemporaryDir;
+class CameraMediaCache;
 
 // High-level Qt camera service - manages ThetaBridge and adds thumbnail throttling.
 class ThetaCameraService : public QObject
@@ -68,16 +69,32 @@ private:
     void publishCatalog();
     void finishImageInfo(const CameraFileInfo& file, const QPixmap& thumbnail,
                          const QString& error, quint64 requestId);
+    bool currentFile(const CameraFileInfo& file) const;
+    bool cacheEligible(const CameraFileInfo& file) const;
+    void warnCacheFailure();
+    void acceptThumbnail(const CameraFileInfo& file, const QPixmap& thumbnail, quint64 requestId);
+    struct PendingThumbnail {
+        CameraFileInfo file;
+        QString cameraIdentifier;
+    };
     struct PendingDownload {
         CameraFileInfo file;
         QString destinationPath;
         int attempt = 1;
         bool preview = false;
         QString cameraIdentifier;
+        bool persistentPreview = false;
     };
 
     ThetaBridge*          m_bridge       = nullptr;
     QString              m_cameraIdentifier;
+    std::unique_ptr<CameraMediaCache> m_mediaCache;
+    QHash<quint64, PendingThumbnail> m_pendingThumbnails;
+    quint64 m_thumbnailRequestId = 0;
+    QString m_activeImageInfoCameraIdentifier;
+    QString m_pendingDeleteCameraIdentifier;
+    bool m_catalogComplete = false;
+    bool m_cacheWarningShown = false;
     QList<CameraFileInfo> m_files;
     QList<CameraFileInfo> m_thumbnailQueue;
     QList<CameraFileInfo> m_imageInfoQueue;

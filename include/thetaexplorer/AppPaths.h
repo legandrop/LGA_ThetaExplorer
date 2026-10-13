@@ -14,6 +14,7 @@ namespace AppPaths {
     QString settingsDirectory();
     QString settingsFile();
     QString updateCacheDirectory();
+    QString mediaCacheDirectory();
 
     // Como en las otras apps: el updater nunca reemplaza un binario del arbol de desarrollo.
     inline bool runsFromDevelopmentTree(const QString& executablePath)

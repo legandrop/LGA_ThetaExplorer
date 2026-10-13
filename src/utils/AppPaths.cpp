@@ -41,6 +41,12 @@ QString AppPaths::updateCacheDirectory()
 #endif
 }
 
+QString AppPaths::mediaCacheDirectory()
+{
+    return QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
+        .filePath(QStringLiteral("camera-media"));
+}
+
 void AppPaths::migrateLegacySettings()
 {
     const QString iniPath = settingsFile();
