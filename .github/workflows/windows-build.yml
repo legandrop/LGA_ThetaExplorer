@@ -1,0 +1,52 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_patch:
+        description: Optional ZIP source overlay, encoded as base64
+        required: false
+        type: string
+      patch_sha256:
+        description: SHA256 of the decoded ZIP
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply optional source overlay
+        shell: pwsh
+        env:
+          SOURCE_PATCH: ${{ inputs.source_patch }}
+          PATCH_SHA256: ${{ inputs.patch_sha256 }}
+        run: ./tools/ci/apply-source-overlay.ps1
+      - name: Install Qt and MinGW
+        shell: pwsh
+        run: |
+          $pythonExe = (Get-Command python.exe).Source
+          & $pythonExe -m pip install --disable-pip-version-check aqtinstall==3.3.0
+          if ($LASTEXITCODE -ne 0) { throw 'aqt installation failed' }
+          & $pythonExe -m aqt install-qt windows desktop 6.5.3 win64_mingw -O C:\Qt
+          if ($LASTEXITCODE -ne 0) { throw 'Qt installation failed' }
+          & $pythonExe -m aqt install-tool windows desktop tools_mingw qt.tools.win64_mingw1120 -O C:\Qt
+          if ($LASTEXITCODE -ne 0) { throw 'MinGW installation failed' }
+      - name: Build and deploy runtime
+        shell: cmd
+        env:
+          THETA_MINGW_BIN: C:\Qt\Tools\mingw1120_64\bin
+        run: compilar.bat --release --no-run --parallel 2
+      - name: Verify camera worker without a device
+        shell: pwsh
+        run: |
+          if (Test-Path tools/ci/camera-worker-smoke.ps1) {
+            ./tools/ci/camera-worker-smoke.ps1 -Executable "$PWD/build-release/LGA_ThetaExplorer.exe"
+          }

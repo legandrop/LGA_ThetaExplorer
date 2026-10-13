@@ -1,0 +1,461 @@
+/* ThetaMacExplorer - tema oscuro de las apps LGA.
+   Los nombres en minuscula (bg_principal, txt_principal, violeta_claro...) son variables:
+   ColorUtils::loadStyleSheet() los reemplaza por los valores de include/thetaexplorer/ColorUtils.h.
+   Una sola familia de fuente: con una lista Qt carga todas las del sistema (ver hub Qt/C++). */
+
+QWidget {
+    background-color: bg_principal;
+    color: txt_principal;
+    font-family: "Inter";
+    font-size: 13px;
+}
+
+QMainWindow {
+    background-color: bg_principal;
+}
+
+QLabel {
+    background: transparent;
+    color: txt_principal;
+}
+
+/* ---- Scroll ---- */
+QScrollArea {
+    background-color: bg_principal;
+    border: none;
+}
+QScrollBar:vertical {
+    background: #1a1a1a;
+    width: 8px;
+    border-radius: 4px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #3a3a3a;
+    border-radius: 4px;
+    min-height: 24px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #555555;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QScrollBar:horizontal {
+    background: #1a1a1a;
+    height: 8px;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal {
+    background: #3a3a3a;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: #555555;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* ---- Botones genericos ---- */
+QPushButton {
+    background-color: #2a2a2a;
+    color: txt_principal;
+    border: 1px solid #333333;
+    border-radius: 5px;
+    padding: 5px 14px;
+    font-size: 13px;
+}
+QPushButton:hover {
+    background-color: #383838;
+    color: #d0d0d0;
+}
+QPushButton:pressed {
+    background-color: #1a1a1a;
+}
+QPushButton:disabled {
+    color: #4a4a4a;
+    border-color: #272727;
+    background-color: #1d1d1d;
+}
+
+/* ---- Controles del Viewer ---- */
+QWidget#viewerContainer {
+    background-color: bg_principal;
+}
+QWidget#toolbar {
+    background-color: #191919;
+    border-bottom: 1px solid #252525;
+}
+QLabel#cameraLabel {
+    color: txt_titulo;
+    font-weight: 500;
+}
+QLabel#cameraLabel[state="searching"] {
+    color: txt_secundario;
+    font-weight: 400;
+}
+QLabel#batteryLabel {
+    color: txt_secundario;
+    font-size: 12px;
+}
+QLabel#batteryLabel[low="true"] {
+    color: color_error;
+}
+QLabel#folderLabel, QLabel#progressLabel, QLabel#selectionLabel {
+    color: txt_secundario;
+    font-size: 12px;
+}
+
+QPushButton#destinationButton {
+    background-color: transparent;
+    border: none;
+    color: txt_secundario;
+    font-size: 12px;
+    padding: 0;
+}
+QPushButton#destinationButton:hover QLabel {
+    color: txt_titulo;
+}
+QLabel#folderLabel:disabled {
+    color: #4a4a4a;
+}
+QPushButton#refreshBtn {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+}
+QPushButton#refreshBtn:hover, QPushButton#refreshBtn:pressed, QPushButton#refreshBtn:disabled {
+    background-color: transparent;
+}
+/* Un QWidget pelado toma el fondo global y dibujaria un recuadro sobre la toolbar. */
+QWidget#batteryBox {
+    background: transparent;
+}
+
+/* Accion principal */
+QPushButton#downloadBtn {
+    background-color: violeta_oscuro;
+    border: none;
+    border-radius: 6px;
+    color: txt_titulo;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+}
+QPushButton#downloadBtn:hover, QPushButton#downloadBtn:pressed {
+    background-color: violeta_claro;
+}
+QPushButton#downloadBtn:disabled {
+    background-color: #1e1e28;
+    color: #3a3a50;
+}
+
+/* Accion secundaria, como los botones neutrales del Player. */
+QPushButton#deleteBtn {
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 6px;
+    color: #999999;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+}
+QPushButton#deleteBtn:hover {
+    background-color: #333333;
+    color: txt_titulo;
+}
+QPushButton#deleteBtn:pressed {
+    background-color: #3a3a3a;
+}
+QPushButton#deleteBtn:disabled {
+    background-color: #1d1d1d;
+    color: #4a4a4a;
+}
+
+QPushButton#helpBtn {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+}
+QPushButton#helpBtn:hover {
+    background-color: transparent;
+}
+
+/* ---- Progreso ---- */
+QProgressBar {
+    background-color: #222222;
+    border: 1px solid #2a2a2a;
+    border-radius: 4px;
+}
+QProgressBar::chunk {
+    background-color: violeta_claro;
+    border-radius: 4px;
+}
+
+/* ---- Splitter ---- */
+QSplitter {
+    background-color: bg_principal;
+}
+QSplitter::handle {
+    background-color: #222222;
+}
+QSplitter::handle:hover {
+    background-color: #444444;
+}
+
+/* ---- Barra de estado ---- */
+QStatusBar {
+    background-color: bg_tabs;
+    border-top: 1px solid #1f1f1f;
+}
+QStatusBar::item {
+    border: none;
+}
+QLabel#statusLabel {
+    padding: 0 8px;
+    color: txt_secundario;
+    font-size: 12px;
+}
+
+/* ---- Grilla y estado vacio ---- */
+QWidget#gridContainer, QWidget#emptyState {
+    background-color: bg_principal;
+}
+QLabel#emptyStateTitle {
+    color: txt_titulo;
+    font-size: 17px;
+    font-weight: 500;
+}
+QLabel#emptyStateText, QLabel#emptyStateSearching {
+    color: txt_secundario;
+    font-size: 13px;
+}
+QLabel#emptyStateSearching {
+    font-size: 12px;
+}
+
+/* ---- Tiles ---- */
+QLabel#tileThumb {
+    background-color: #111111;
+    border-radius: 3px;
+}
+QLabel#tileThumb[placeholder="raw"] {
+    color: color_warning;
+    font-size: 18px;
+    font-weight: 700;
+}
+QLabel#tileBadge {
+    border-radius: 11px;
+    min-height: 22px;
+    max-height: 22px;
+}
+QLabel#tileBadge[state="saved"] {
+    background-color: rgba(46, 125, 50, 230);
+}
+QLabel#tileBadge[state="partial"] {
+    background-color: rgba(138, 91, 18, 235);
+}
+QLabel#tileBadgeText {
+    font-size: 12px;
+    font-weight: 700;
+    background: transparent;
+}
+QLabel#tileBadgeText[state="saved"] {
+    color: #eaf7ea;
+}
+QLabel#tileBadgeText[state="partial"] {
+    color: #fff3d6;
+}
+QLabel#tileName {
+    color: txt_principal;
+    font-size: 14px;
+}
+QLabel#tileDate {
+    font-size: 13px;
+    font-weight: 400;
+}
+QWidget#tileFooter {
+    background: transparent;
+    border: none;
+}
+QLabel#tileFormat {
+    color: txt_titulo;
+    font-size: 12px;
+    font-weight: 500;
+    background: bg_tabs;
+    border: 1px solid border_principal;
+    border-radius: 3px;
+    padding: 1px 4px;
+}
+/* ---- Preview y File Info ---- */
+QWidget#previewPanel {
+    background-color: bg_principal;
+}
+QLabel#previewSectionHeader {
+    color: txt_secundario;
+    font-size: 12px;
+}
+QLabel#previewApproximateLabel {
+    color: txt_secundario;
+    font-size: 11px;
+}
+QLabel#previewImage, QLabel#stitchedPreviewImage {
+    background-color: #111111;
+}
+QLabel#previewPlaceholder {
+    color: txt_secundario;
+    font-size: 13px;
+}
+QWidget#metadataPanel {
+    background-color: bg_principal;
+    border-top: 1px solid #252525;
+}
+QLabel#metaTitle {
+    color: txt_secundario;
+    font-size: 11px;
+    font-weight: 500;
+}
+QLabel#metaKey {
+    color: txt_secundario;
+    font-size: 12px;
+}
+QLabel#metaValue {
+    color: txt_principal;
+    font-size: 12px;
+}
+QLabel#metaValue[field="name"] {
+    font-size: 13px;
+    font-weight: 500;
+}
+QLabel#metaValue[field="size"], QLabel#metaValue[field="date"],
+QLabel#metaValue[field="dimensions"] {
+    color: txt_secundario;
+}
+
+/* ---- Dialogos ---- */
+QDialog {
+    background-color: bg_principal;
+    color: txt_principal;
+}
+
+/* Confirmacion: mismo chrome que los dialogos del Player de MediaTools */
+QDialog#confirmDialog {
+    background-color: bg_principal;
+}
+QLabel#confirmTitle {
+    color: #e8e8e8;
+    font-size: 15px;
+    font-weight: 700;
+}
+QLabel#confirmSubtitle {
+    color: #7b7b7b;
+    font-size: 12px;
+}
+QLabel#confirmHint {
+    color: #9a9a9a;
+    font-size: 12px;
+}
+QPushButton#confirmButton {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 13px;
+    min-height: 20px;
+}
+QPushButton#confirmButton:focus {
+    outline: none;
+}
+QPushButton#confirmButton[variant="neutral"] {
+    background-color: #2a2a2a;
+    color: #999999;
+}
+QPushButton#confirmButton[variant="neutral"]:hover,
+QPushButton#confirmButton[variant="neutral"]:pressed {
+    background-color: #333333;
+    color: txt_titulo;
+}
+QPushButton#confirmButton[variant="action"] {
+    background-color: violeta_oscuro;
+    color: txt_titulo;
+    font-weight: 600;
+}
+QPushButton#confirmButton[variant="action"]:hover,
+QPushButton#confirmButton[variant="action"]:pressed {
+    background-color: violeta_claro;
+}
+QPushButton#confirmButton[variant="danger"] {
+    background-color: #5a2430;
+    color: #e9c1c8;
+    font-weight: 600;
+}
+QPushButton#confirmButton[variant="danger"]:hover,
+QPushButton#confirmButton[variant="danger"]:pressed {
+    background-color: #6e2a39;
+}
+
+/* Help */
+QDialog#helpDialog {
+    background-color: bg_principal;
+}
+QLabel#helpKey {
+    color: #aeaeae;
+    background-color: #262626;
+    border: 1px solid #383838;
+    border-bottom: 2px solid #383838;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Help y carteles de actualizacion */
+QPushButton#checkUpdatesBtn, QPushButton#confirmDetailsButton {
+    background: bg_items;
+    color: txt_principal;
+    border: 1px solid border_principal;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 13px;
+}
+QPushButton#checkUpdatesBtn:hover, QPushButton#confirmDetailsButton:hover {
+    background: bg_tabs;
+    color: txt_titulo;
+}
+QPushButton#checkUpdatesBtn:disabled {
+    color: txt_secundario;
+}
+QCheckBox#automaticUpdatesCheck {
+    color: txt_principal;
+    font-size: 13px;
+    spacing: 8px;
+}
+QCheckBox#automaticUpdatesCheck::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid border_principal;
+    border-radius: 3px;
+    background: bg_tabs;
+}
+QCheckBox#automaticUpdatesCheck::indicator:checked {
+    background: violeta_oscuro;
+    image: url(:/icons/ui/check_light.svg);
+}
+QTextBrowser#confirmNotes, QPlainTextEdit#confirmDetails {
+    background: bg_tabs;
+    color: txt_principal;
+    border: 1px solid border_principal;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 13px;
+}
+QProgressDialog#updateDownloadProgressDialog {
+    background: bg_principal;
+}
+QProgressDialog#updateDownloadProgressDialog QPushButton {
+    background: bg_items;
+    color: txt_principal;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+}

@@ -1,0 +1,31 @@
+/* Estilos del popover de mensajes (MessagePopover) */
+
+/* ------------------------------ Tarjeta ------------------------------ */
+/* El border-radius tiene que coincidir con kContentRadius de src/ui/popover/MessagePopover.cpp:
+   la sombra se pinta con ese radio y la tarjeta la tapa solo si la geometria coincide. */
+QWidget#messagePopoverContentWidget {
+    background-color: #232323;
+    border: 1px solid #3A3A3A;
+    border-radius: 8px;
+}
+
+/* ------------------------------ Boton de cierre ------------------------------ */
+/* El boton se dibuja entero en codigo (PopoverCloseButton): la cruz, el fondo del hover y el
+   del pressed salen de ahi, no de aca. Un paintEvent propio que no llama al de la clase base
+   ignora los backgrounds del QSS, asi que poner reglas aca no haria nada. El tamaño de caja y
+   el margen viven en kCloseSize / kCloseMargin de MessagePopover.cpp. */
+
+/* ------------------------------ Contenido ------------------------------ */
+/* Ojo: padding y min-height los REPLICA MessagePopover::updateContentSize() en las constantes
+   kLabelPadding y kMinTextHeight, porque el tamaño del popover se calcula a mano con un
+   QTextDocument. Si se cambian aca, hay que cambiarlas alla. */
+QLabel#messagePopoverTextLabel {
+    color: #B2B2B2;
+    font-family: "Inter";
+    font-size: 16px;
+    font-weight: 400;
+    padding: 8px;
+    background-color: transparent;
+    margin: 0;
+    min-height: 60px;
+}

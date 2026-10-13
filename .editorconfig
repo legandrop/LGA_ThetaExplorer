@@ -1,0 +1,12 @@
+# Hace que el editor escriba los finales de linea correctos ANTES de que git
+# los vea. Acompania al .gitattributes: uno normaliza al commitear, el otro
+# evita que haga falta.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+
+  <!--
+    ThetaExplorer — ícono
+    Fondo: cuadrado redondeado oscuro (#141414) — mismo estilo que PipeSync/FileManager
+    Forma: símbolo θ — anillo (outer r=185, inner r=141, grosor=44px) + barra horizontal
+    Técnica CMY — offsets triangulares:
+      Cyan   (0, -16)   arriba
+      Magenta(-14, +8)  abajo-izquierda
+      Yellow (+14, +8)  abajo-derecha
+    Método: base blanca solo en el área del anillo (unión de las 3 capas),
+            luego cada capa CMY con mix-blend-mode:multiply encima.
+            El interior del anillo y el exterior son transparentes → muestra el fondo oscuro.
+  -->
+
+  <!-- Fondo oscuro redondeado -->
+  <rect width="512" height="512" rx="112" ry="112" fill="#1b1b1d"/>
+
+  <!-- Base blanca: unión de los 3 anillos offset, para que multiply tenga sobre qué trabajar -->
+  <g fill="white">
+    <path fill-rule="evenodd" transform="translate(0,-16)"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect transform="translate(0,-16)"   x="71" y="234" width="370" height="44"/>
+
+    <path fill-rule="evenodd" transform="translate(-14,8)"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect transform="translate(-14,8)"   x="71" y="234" width="370" height="44"/>
+
+    <path fill-rule="evenodd" transform="translate(14,8)"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect transform="translate(14,8)"    x="71" y="234" width="370" height="44"/>
+  </g>
+
+  <!-- Placa Cyan — arriba -->
+  <g transform="translate(0,-16)" style="mix-blend-mode: multiply" fill="#00aeef">
+    <path fill-rule="evenodd"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect x="71" y="234" width="370" height="44"/>
+  </g>
+
+  <!-- Placa Magenta — abajo-izquierda -->
+  <g transform="translate(-14,8)" style="mix-blend-mode: multiply" fill="#ec008c">
+    <path fill-rule="evenodd"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect x="71" y="234" width="370" height="44"/>
+  </g>
+
+  <!-- Placa Yellow — abajo-derecha -->
+  <g transform="translate(14,8)" style="mix-blend-mode: multiply" fill="#fff200">
+    <path fill-rule="evenodd"
+      d="M256,71 A185,185 0 1,0 256,441 A185,185 0 1,0 256,71 Z
+         M256,115 A141,141 0 1,1 256,397 A141,141 0 1,1 256,115 Z"/>
+    <rect x="71" y="234" width="370" height="44"/>
+  </g>
+
+</svg>
