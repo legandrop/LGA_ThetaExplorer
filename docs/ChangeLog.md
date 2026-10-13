@@ -1,6 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.026:
+- Las preguntas Y/N del instalador se muestran completas antes de esperar la respuesta, usando choice directamente en la consola como los otros instaladores. Se elimina la captura de salida que retenia el texto hasta pulsar una tecla y se conserva el flujo de instalar, revelar en Explorer y publicar.
+- [ Windows - Preguntas del instalador visibles ]
+
+v1.026:
 - Los avisos de error se cierran automaticamente a los cuatro segundos y muestran la barra inferior que se consume, como los avisos de PipeSync. La cuenta se pausa al pasar el mouse por encima y conserva la cruz para cerrar antes; el detalle permanece en la barra de estado y en el log.
 - [ UI - Avisos con barra y cierre automatico ]
 

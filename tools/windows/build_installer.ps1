@@ -10,9 +10,8 @@ function Run-Checked([string]$Command, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "$Command fallo con codigo $LASTEXITCODE" }
 }
 function Confirm-Choice([string]$Message) {
-    & "$env:SystemRoot\System32\choice.exe" /C YN /M $Message | Out-Host
+    & "$env:SystemRoot\System32\choice.exe" /C YN /M $Message
     if ($LASTEXITCODE -notin 1, 2) { throw 'No se pudo leer la respuesta Y/N' }
-    return $LASTEXITCODE -eq 1
 }
 function Git-Value([string[]]$Arguments) {
     $value = & git @Arguments
@@ -172,12 +171,14 @@ end;
     [IO.File]::WriteAllText($hashFile, ((File-Sha256 $setup) + '  ' + [IO.Path]::GetFileName($setup) + "`n"), $utf8)
     Write-Host "Instalador listo: $setup"
     if ($interactive) {
-        if (Confirm-Choice 'Desea ejecutar el instalador ahora mismo (instalar local)?') {
+        Confirm-Choice 'Desea ejecutar el instalador ahora mismo?'
+        if ($LASTEXITCODE -eq 1) {
             Start-Process -FilePath $setup -Wait
         } else {
             Write-Host 'Instalador no ejecutado.'
         }
-        if (Confirm-Choice 'Desea revelar el instalador en Windows Explorer?') {
+        Confirm-Choice 'Desea revelar el instalador en Windows Explorer?'
+        if ($LASTEXITCODE -eq 1) {
             if (Test-Path -LiteralPath $setup) { & explorer.exe /select, $setup }
         } else {
             Write-Host 'No se abrio Windows Explorer.'
@@ -188,7 +189,8 @@ end;
         if ($currentCommit -ne $commit) { throw 'El commit cambio durante el empaquetado' }
         Write-Host "Release publico: $repo / v$version / $commit"
         Write-Host "Archivos: $setup y $hashFile"
-        if (Confirm-Choice "Desea subir el instalador como release v$version a GitHub?") {
+        Confirm-Choice "Desea subir el instalador como release v$version a GitHub?"
+        if ($LASTEXITCODE -eq 1) {
             $notes = Join-Path $output 'release-notes.md'
             [IO.File]::WriteAllText($notes, 'First Windows release. Browse a RICOH THETA over USB, preview photos, group HDR brackets and download JPG/DNG files. Windows 10/11 x64; no Ricoh software required.', $utf8)
             Run-Checked 'gh' @('release','create',"v$version",$setup,$hashFile,'--repo',$repo,'--target',$commit,

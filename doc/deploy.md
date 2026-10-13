@@ -20,7 +20,7 @@ El `.iss` se regenera: se edita `tools/windows/build_installer.ps1`.
 
 Sin flags y con consola interactiva, ofrece instalar, revelar el setup en Explorer
 y publicar en GitHub, en ese orden y con preguntas `Y/N` independientes mediante
-`choice /C YN`, igual que los otros instaladores. El modo local no requiere
+`choice /C YN` directo a la consola, igual que los otros instaladores. El modo local no requiere
 Git/GitHub ni ofrece publicar. `--no-run`, `--stage-only` y entrada redirigida
 omiten las preguntas y la publicacion.
 El destino predeterminado es `C:\Portable\LGA\ThetaExplorer`; los ajustes e
