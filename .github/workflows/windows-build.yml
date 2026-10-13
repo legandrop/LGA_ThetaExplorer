@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_patch:
-        description: Optional ZIP source overlay, encoded as base64
+        description: Optional ZIP overlay as base64 or blob:<SHA>
         required: false
         type: string
       patch_sha256:
@@ -28,6 +28,7 @@ jobs:
         env:
           SOURCE_PATCH: ${{ inputs.source_patch }}
           PATCH_SHA256: ${{ inputs.patch_sha256 }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./tools/ci/apply-source-overlay.ps1
       - name: Install Qt and MinGW
         shell: pwsh
@@ -44,9 +45,15 @@ jobs:
         env:
           THETA_MINGW_BIN: C:\Qt\Tools\mingw1120_64\bin
         run: compilar.bat --release --no-run --parallel 2
+      - name: Build Debug and deploy runtime
+        shell: cmd
+        env:
+          THETA_MINGW_BIN: C:\Qt\Tools\mingw1120_64\bin
+        run: compilar.bat --no-run --parallel 2
       - name: Verify camera worker without a device
         shell: pwsh
         run: |
           if (Test-Path tools/ci/camera-worker-smoke.ps1) {
             ./tools/ci/camera-worker-smoke.ps1 -Executable "$PWD/build-release/LGA_ThetaExplorer.exe"
+            ./tools/ci/camera-worker-smoke.ps1 -Executable "$PWD/build/LGA_ThetaExplorer.exe"
           }

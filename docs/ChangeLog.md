@@ -1,5 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.016:
+- La verificacion de Windows usa Qt6.5.3/MinGW en un runner independiente y acepta una candidata temporal con SHA256 y rutas acotadas, sin modificar la rama ni crear releases. Se separan Debug y Release y se comprueba el cierre del auxiliar de camara sin dispositivo fisico.
+- [ Build - Verificacion multiplataforma ]
+
 v1.015:
 - La aplicacion pasa a llamarse Theta Explorer: ventana, Help, bundle, ejecutable, scripts, archivos de distribucion y actualizador adoptan la nueva identidad. El repositorio publico nuevo parte de una copia limpia del codigo; el anterior queda como respaldo privado, sin trasladar sus commits ni tags.
 - Se conservan el icono aprobado, la firma y el identificador del bundle de macOS. Los ajustes existentes se copian al nuevo INI cuando todavia no existe, manteniendo el archivo anterior.
