@@ -39,10 +39,13 @@ o el plugin TLS `libqsecuretransportbackend.dylib`.
 ## Ventana principal
 
 - **Controles arriba del Viewer**, en tres filas: camara (`StatusDot`: punto verde conectada,
-  arco girando buscando), bateria (roja con20% o menos), Refresh y Help; destino de descarga
-  clicable con ruta recortada por el principio; cantidad seleccionada, Delete neutral y
-  Download N violeta. Refresh usa los SVG normal/hover de PipeSync, icono20px en boton30px.
-  Download/Delete siguen los botones del Player de MediaTools. El progreso ocupa una fila
+  arco girando buscando), bateria (roja con20% o menos) y Refresh juntos; Help queda
+  en el extremo derecho. Refresh y Help usan glyphs lineales de18px en boton30px,
+  gris secundario normal, gris principal al pasar el mouse y violeta para Help abierto.
+  El destino Save to incluye Browse, ruta recortada por el principio y un fondo con
+  borde y hover en toda la fila. Delete N neutral y Download N violeta muestran texto
+  y la misma cantidad de capturas seleccionadas, sin iconos. Siguen los botones del
+  Player de MediaTools. El progreso ocupa una fila
   adicional mientras descarga; no hay una barra global que quite altura a Browse.
 - **Grilla**: un `QStackedWidget` alterna la grilla y `EmptyStateWidget`. Sin camara: «Connect your
   RICOH THETA» con la fila «Searching for camera…». Camara conectada sin archivos: «The camera is

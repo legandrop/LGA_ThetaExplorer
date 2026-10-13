@@ -89,7 +89,7 @@ QWidget#toolbar {
 }
 QLabel#cameraLabel {
     color: txt_titulo;
-    font-weight: 500;
+    font-weight: 400;
 }
 QLabel#cameraLabel[state="searching"] {
     color: txt_secundario;
@@ -108,14 +108,30 @@ QLabel#folderLabel, QLabel#progressLabel, QLabel#selectionLabel {
 }
 
 QPushButton#destinationButton {
-    background-color: transparent;
-    border: none;
+    background-color: bg_items;
+    border: 1px solid border_principal;
+    border-radius: 6px;
     color: txt_secundario;
     font-size: 12px;
     padding: 0;
 }
-QPushButton#destinationButton:hover QLabel {
-    color: txt_titulo;
+QPushButton#destinationButton:hover {
+    background-color: #2a2a2a;
+}
+QPushButton#destinationButton:pressed {
+    background-color: #333333;
+}
+QPushButton#destinationButton:disabled {
+    background-color: #191919;
+}
+QLabel#browseLabel {
+    background: transparent;
+    color: txt_principal;
+    font-size: 12px;
+    font-weight: 500;
+}
+QLabel#browseLabel:disabled {
+    color: #4a4a4a;
 }
 QLabel#folderLabel:disabled {
     color: #4a4a4a;

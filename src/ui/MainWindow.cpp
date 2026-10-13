@@ -116,13 +116,10 @@ QString findMatchingLocalFilePath(const QString& folderPath, const QString& expe
 namespace {
 
 // Colores de los glyphs de los controles del Viewer.
-constexpr auto kHelpIconHover = "#ffffff";
 constexpr auto kIconNeutral         = "#b2b2b2";
 constexpr auto kIconNeutralDisabled = "#4a4a4a";
-constexpr auto kIconPrimary         = "#cccccc";
-constexpr auto kIconPrimaryDisabled = "#3a3a50";
-constexpr auto kIconNeutralAction   = "#999999";
 constexpr int  kToolbarIconSize     = 15;
+constexpr int  kViewerControlIconSize = 18;
 constexpr int  kViewerMinimumWidth  = 360;
 constexpr int  kLowBatteryPercent   = 20;
 
@@ -231,9 +228,9 @@ void MainWindow::setupUI()
     m_batteryBox->hide();
 
     m_folderBtn = toolbarButton(QString(), "destinationButton", m_toolbar);
-    m_folderBtn->setFixedHeight(24);
+    m_folderBtn->setFixedHeight(30);
     auto* folderLayout = new QHBoxLayout(m_folderBtn);
-    folderLayout->setContentsMargins(0, 0, 0, 0);
+    folderLayout->setContentsMargins(7, 0, 7, 0);
     folderLayout->setSpacing(7);
     m_folderIcon = new QLabel(m_folderBtn);
     m_folderIcon->setFixedSize(kToolbarIconSize, kToolbarIconSize);
@@ -242,19 +239,22 @@ void MainWindow::setupUI()
     m_folderLabel = new QLabel(m_folderBtn);
     m_folderLabel->setObjectName("folderLabel");
     m_folderLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-    for (QLabel* label : {m_folderIcon, folderPrefix, m_folderLabel}) {
+    auto* browseLabel = new QLabel("Browse…", m_folderBtn);
+    browseLabel->setObjectName("browseLabel");
+    for (QLabel* label : {m_folderIcon, folderPrefix, m_folderLabel, browseLabel}) {
         label->setAttribute(Qt::WA_TransparentForMouseEvents);
     }
     folderLayout->addWidget(m_folderIcon, 0, Qt::AlignVCenter);
     folderLayout->addWidget(folderPrefix, 0, Qt::AlignVCenter);
     folderLayout->addWidget(m_folderLabel, 1);
+    folderLayout->addWidget(browseLabel, 0, Qt::AlignVCenter);
     m_folderBtn->installEventFilter(this);
     updateFolderLabel();
 
     m_refreshBtn = toolbarButton(QString(), "refreshBtn", m_toolbar);
     m_refreshBtn->setFixedWidth(30);
     m_refreshBtn->setAccessibleName("Refresh");
-    m_refreshBtn->setIconSize(QSize(20, 20));
+    m_refreshBtn->setIconSize(QSize(kViewerControlIconSize, kViewerControlIconSize));
     m_refreshBtn->setAttribute(Qt::WA_Hover);
     m_refreshBtn->installEventFilter(this);
 
@@ -284,9 +284,10 @@ void MainWindow::setupUI()
     m_helpBtn->installEventFilter(this);
 
     deviceRow->addWidget(m_cameraDot, 0, Qt::AlignVCenter);
-    deviceRow->addWidget(m_cameraLabel, 1, Qt::AlignVCenter);
+    deviceRow->addWidget(m_cameraLabel, 0, Qt::AlignVCenter);
     deviceRow->addWidget(m_batteryBox, 0, Qt::AlignVCenter);
     deviceRow->addWidget(m_refreshBtn, 0, Qt::AlignVCenter);
+    deviceRow->addStretch(1);
     deviceRow->addWidget(m_helpBtn, 0, Qt::AlignVCenter);
     tbLayout->addLayout(deviceRow);
     tbLayout->addWidget(m_folderBtn);
@@ -413,32 +414,24 @@ void MainWindow::applyButtonIcons()
     m_folderIcon->setPixmap(UiIcons::pixmap("folder", kToolbarIconSize,
         QColor(kIconNeutral), dpr));
     updateRefreshButtonIcon();
-    m_downloadBtn->setIconSize(QSize(14, 14));
-    m_deleteBtn->setIconSize(QSize(14, 14));
-    m_downloadBtn->setIcon(UiIcons::buttonIcon("download", 14,
-        QColor(kIconPrimary), QColor(kIconPrimaryDisabled), dpr));
-    m_deleteBtn->setIcon(UiIcons::buttonIcon("trash", 14,
-        QColor(kIconNeutralAction), QColor(kIconNeutralDisabled), dpr));
     updateHelpButtonIcon();
     m_batteryIcon->setPixmap(UiIcons::pixmap("battery", 18, QColor(ColorUtils::TXT_SECUNDARIO), dpr));
 }
 
 void MainWindow::updateRefreshButtonIcon()
 {
-    QIcon icon(m_refreshHovered && m_refreshBtn->isEnabled()
-        ? ":/icons/ui/refresh_ps_white.svg" : ":/icons/ui/refresh_ps.svg");
-    icon.addPixmap(UiIcons::pixmap("refresh_ps", 20, QColor(kIconNeutralDisabled),
-                                 devicePixelRatioF()), QIcon::Disabled);
-    m_refreshBtn->setIcon(icon);
+    m_refreshBtn->setIcon(UiIcons::buttonIcon("refresh", kViewerControlIconSize,
+        QColor(m_refreshHovered ? ColorUtils::TXT_PRINCIPAL : ColorUtils::TXT_SECUNDARIO),
+        QColor(kIconNeutralDisabled), devicePixelRatioF()));
 }
 
 void MainWindow::updateHelpButtonIcon()
 {
-    const QColor color(m_helpHovered ? kHelpIconHover : m_helpDialog
-        ? ColorUtils::VIOLETA_OSCURO : ColorUtils::TXT_PRINCIPAL);
-    m_helpBtn->setIcon(UiIcons::buttonIcon("help", 21, color,
+    const QColor color(m_helpHovered ? ColorUtils::TXT_PRINCIPAL : m_helpDialog
+        ? ColorUtils::VIOLETA_CLARO : ColorUtils::TXT_SECUNDARIO);
+    m_helpBtn->setIcon(UiIcons::buttonIcon("help", kViewerControlIconSize, color,
         QColor(kIconNeutralDisabled), devicePixelRatioF()));
-    m_helpBtn->setIconSize(QSize(21, 21));
+    m_helpBtn->setIconSize(QSize(kViewerControlIconSize, kViewerControlIconSize));
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event)
@@ -1270,6 +1263,8 @@ void MainWindow::updateButtonStates()
 #endif
     m_downloadBtn->setText(hasSelected ? QString("Download %1").arg(m_selectedGroups.size())
                                        : QString("Download"));
+    m_deleteBtn->setText(hasSelected ? QString("Delete %1").arg(m_selectedGroups.size())
+                                     : QString("Delete"));
     m_selectionLabel->setText(hasSelected
         ? QString("%1 item%2 selected").arg(m_selectedGroups.size())
             .arg(m_selectedGroups.size() == 1 ? "" : "s")

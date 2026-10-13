@@ -1,5 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.020:
+- El nombre de camara, bateria y Refresh quedan juntos en un bloque compacto; Help conserva el extremo derecho. Refresh y Help usan trazos finos de18px y los grises de la paleta, sin blanco intenso. El nombre de camara baja a peso regular.
+- El destino incluye Browse y un fondo con borde y hover en toda la fila para identificarlo como clickeable. Delete y Download muestran solamente texto y ambos indican la cantidad de capturas seleccionadas; sus confirmaciones y acciones conservan los archivos completos de cada captura.
+- [ UI - Controles compactos y destino visible ]
+
 v1.019:
 - El historial de descargas se guarda de forma permanente junto a settings.ini, separado del destino y por identidad de camara/archivo. Registra fecha UTC solamente tras una transferencia del usuario con ruta, nombre y tamaño verificados; previews y cabeceras no cuentan. Escritura atomica y bloqueo entre instancias conservan los registros anteriores ante errores o archivos invalidos.
 - Las tarjetas muestran Downloaded o Partial desde ese historial, aunque se mueva o borre la carpeta de descarga; File Info muestra la ultima fecha/hora y el progreso parcial por archivo. Skip Existing y Replace siguen revisando los archivos locales, sin saltarse nuevas descargas por una marca historica. No se inventan registros para descargas anteriores.

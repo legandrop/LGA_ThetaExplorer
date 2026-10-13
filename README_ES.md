@@ -69,7 +69,7 @@ para leer los archivos de la THETA.
 
 1. Conectá la cámara. Sus fotos y videos aparecen como tiles; las secuencias HDR, como un
    solo tile.
-2. Hacé clic en el destino **Save to**, arriba del Viewer, para elegir dónde guardar.
+2. Hacé clic en **Browse…**, en la fila **Save to** arriba del Viewer, para elegir dónde guardar.
 3. Seleccioná uno o más ítems y apretá **Download**, o **Delete** para borrarlos de la
    cámara.
 
