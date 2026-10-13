@@ -105,7 +105,8 @@ comparte la cola serial de Download, con prioridad para las descargas elegidas p
 usuario. Navegar rapido conserva solo el ultimo preview pendiente; las miniaturas esperan
 mientras hay una transferencia. Las señales y contadores de Download no incluyen previews.
 Las miniaturas, los previews JPEG y los metadatos de brackets sobreviven al cierre y la
-desconexion en `QStandardPaths::CacheLocation/camera-media`, separados por numero de serie
+desconexion en `QStandardPaths::CacheLocation/camera-media` en macOS y `cache/camera-media`
+junto al ejecutable en Windows, separados por numero de serie
 y por ruta/nombre/tamaño/fecha UTC/UID de archivo. Solamente se copian los previews solicitados;
 las panoramicas se vuelven a generar desde ese JPEG local. Las entradas desaparecen cuando
 un catalogo completo confirma que ya no estan en la camara o tras un Delete exitoso; una lista

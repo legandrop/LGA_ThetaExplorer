@@ -42,7 +42,7 @@ with its middle exposure, and you can see at a glance which sets you already dow
 ## Requirements
 
 - macOS 12 or later, on Apple Silicon or Intel, or Windows 10/11 64-bit.
-- Windows uses Windows Portable Devices; physical THETA validation on Windows is pending.
+- Windows uses its built-in Windows Portable Devices driver; no Ricoh app or camera plugin is needed.
 - A RICOH THETA connected by USB and turned on. Tested with the **THETA Z1**.
 
 ## Install
@@ -94,7 +94,7 @@ files and previews do not create historical records. A historical mark never ski
 a new download; Skip Existing checks the actual files in the chosen destination.
 
 The image cache lives in `~/Library/Caches/LGA/ThetaExplorer/camera-media` on macOS
-and `%LOCALAPPDATA%\LGA\ThetaExplorer\cache\camera-media` on Windows. It only keeps
+and `cache\camera-media` next to the executable on Windows. It only keeps
 thumbnails and JPEG previews requested from each camera; it does not count as a download.
 Stitched previews are regenerated from the cached JPEG without another camera transfer.
 

@@ -123,6 +123,14 @@ QString hresultText(HRESULT result)
     return QString("0x%1").arg(quint32(result), 8, 16, QLatin1Char('0'));
 }
 
+QString nativeFilePath(const QString& path)
+{
+    const QString native = QDir::toNativeSeparators(path);
+    if (native.startsWith(QStringLiteral("\\\\?\\"))) return native;
+    if (native.startsWith(QStringLiteral("\\\\"))) return QStringLiteral("\\\\?\\UNC\\") + native.mid(2);
+    return QStringLiteral("\\\\?\\") + native;
+}
+
 QString stringValue(IPortableDeviceValues* values, REFPROPERTYKEY key)
 {
     LPWSTR value = nullptr;
@@ -241,13 +249,20 @@ bool WpdWorker::properties(const QString& id, Entry& entry)
     for (const auto& key : requested) if (FAILED(keys->Add(key))) return false;
     ComPtr<IPortableDeviceValues> values;
     const HRESULT hr = props->GetValues(reinterpret_cast<LPCWSTR>(id.utf16()), keys.get(), values.out());
-    if (FAILED(hr) || !values.get()) return false;
+    if (FAILED(hr) || !values.get()) {
+        qWarning().noquote() << "No se pudieron leer las propiedades WPD del objeto" << id << hresultText(hr);
+        return false;
+    }
     entry.objectId = id;
     entry.parentId = stringValue(values.get(), WPD_OBJECT_PARENT_ID);
     entry.file.name = stringValue(values.get(), WPD_OBJECT_ORIGINAL_FILE_NAME);
     if (entry.file.name.isEmpty()) entry.file.name = stringValue(values.get(), WPD_OBJECT_NAME);
     entry.file.persistentId = stringValue(values.get(), WPD_OBJECT_PERSISTENT_UNIQUE_ID);
-    if (FAILED(values->GetGuidValue(WPD_OBJECT_CONTENT_TYPE, &entry.contentType))) return false;
+    const HRESULT contentHr = values->GetGuidValue(WPD_OBJECT_CONTENT_TYPE, &entry.contentType);
+    if (FAILED(contentHr)) {
+        qWarning().noquote() << "El objeto WPD no tiene tipo de contenido" << id << hresultText(contentHr);
+        return false;
+    }
     ULONGLONG size = 0;
     if (SUCCEEDED(values->GetUnsignedLargeIntegerValue(WPD_OBJECT_SIZE, &size))
         && size <= ULONGLONG(std::numeric_limits<qint64>::max())) entry.file.sizeBytes = qint64(size);
@@ -347,7 +362,14 @@ void WpdWorker::imageInfo(const CameraFileInfo& file)
         fail("The image header could not be read.");
         return;
     }
-    const auto result = CameraImageHeader::parse(file, bytes);
+    auto result = CameraImageHeader::parse(file, bytes);
+    if (file.isRaw && result.headerValid && result.thumbnail.isNull()) {
+        // El JPEG embebido puede quedar fuera del prefijo; WPD ofrece su propia miniatura.
+        bytes.clear();
+        if (readResource(entry, WPD_RESOURCE_THUMBNAIL, ThetaCameraWorker::MaxThumbnailBytes, bytes))
+            result.thumbnail = decodeImage(bytes);
+        if (!result.thumbnail.isNull()) result.error.clear();
+    }
     if (!result.error.isEmpty()) { fail(result.error); return; }
     Entry verified;
     if (!validate(file, verified, false)) return;
@@ -403,7 +425,10 @@ void WpdWorker::download(const CameraFileInfo& file, const QString& directory, c
     if (!validate(file, verified, false)) return;
     if (!output.commit()) { fail("The downloaded file could not be saved."); return; }
     if (interrupted()) { fail("The camera transfer was cancelled before replacing the local file."); return; }
-    if (!MoveFileExW(reinterpret_cast<LPCWSTR>(stagedPath.utf16()), reinterpret_cast<LPCWSTR>(finalPath.utf16()),
+    // Qt admite rutas largas; el traslado Win32 necesita la misma forma extendida.
+    const QString nativeStaged = nativeFilePath(stagedPath);
+    const QString nativeFinal = nativeFilePath(finalPath);
+    if (!MoveFileExW(reinterpret_cast<LPCWSTR>(nativeStaged.utf16()), reinterpret_cast<LPCWSTR>(nativeFinal.utf16()),
         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         fail("The downloaded file could not replace the local copy.", HRESULT_FROM_WIN32(GetLastError())); return;
     }
@@ -491,6 +516,7 @@ bool WpdWorker::catalog()
     QSet<QString> visited;
     QSet<QString> logicalPaths{root};
     QHash<QString, Entry> discovered;
+    int unreadable = 0;
     while (!folders.isEmpty() && !interrupted()) {
         const Folder folder = folders.dequeue();
         if (folder.depth > 64 || visited.contains(folder.id) || visited.size() > 100000) {
@@ -512,11 +538,19 @@ bool WpdWorker::catalog()
             for (DWORD i = 0; i < count; ++i) {
                 Entry entry;
                 const QString id = ids[i] ? QString::fromWCharArray(ids[i]) : QString();
-                if (id.isEmpty() || !properties(id, entry) || entry.file.name.isEmpty()
-                    || entry.file.name.size() > 1024 || entry.file.name.contains(QChar(0))) { valid = false; break; }
+                if (id.isEmpty()) { valid = false; break; }
+                if (!properties(id, entry) || entry.file.name.isEmpty()
+                    || entry.file.name.size() > 1024 || entry.file.name.contains(QChar(0))) {
+                    qWarning().noquote() << "Entrada WPD incompleta:" << id << "nombre:" << entry.file.name;
+                    ++unreadable;
+                    continue;
+                }
                 entry.file.devicePath = folder.path + '/' + QString::fromLatin1(QUrl::toPercentEncoding(entry.file.name));
                 // Una carpeta homónima también vuelve ambigua la identidad de sus archivos.
-                if (logicalPaths.contains(entry.file.devicePath) || logicalPaths.size() >= 100000) { valid = false; break; }
+                if (logicalPaths.contains(entry.file.devicePath) || logicalPaths.size() >= 100000) {
+                    qWarning().noquote() << "Ruta WPD duplicada o catálogo demasiado grande:" << entry.file.devicePath;
+                    valid = false; break;
+                }
                 logicalPaths.insert(entry.file.devicePath);
                 if (IsEqualGUID(entry.contentType, WPD_CONTENT_TYPE_FOLDER)
                     || IsEqualGUID(entry.contentType, WPD_CONTENT_TYPE_FUNCTIONAL_OBJECT)) {
@@ -534,10 +568,15 @@ bool WpdWorker::catalog()
         }
     }
     if (interrupted()) return false;
+    if (unreadable && discovered.isEmpty()) {
+        fail("The camera files could not be read. Refresh the camera and try again.");
+        return false;
+    }
     entries = discovered;
     QJsonArray files;
     for (const Entry& entry : std::as_const(entries)) files.append(ThetaCameraWorker::fileToJson(entry.file));
-    reply("catalog", {{"files", files}});
+    reply("catalog", {{"files", files}, {"complete", unreadable == 0}});
+    if (unreadable) fail(QString("%1 camera objects could not be read. The available files are shown; refresh to try again.").arg(unreadable));
     battery();
     return true;
 }

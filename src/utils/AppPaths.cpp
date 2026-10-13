@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QCoreApplication>
 
 namespace {
 constexpr auto kAppFolder = "ThetaExplorer";
@@ -35,7 +36,7 @@ QString AppPaths::settingsFile()
 QString AppPaths::updateCacheDirectory()
 {
 #ifdef Q_OS_WIN
-    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("cache"));
 #else
     return QDir::homePath() + QStringLiteral("/Library/Caches/LGA/%1").arg(kAppFolder);
 #endif
@@ -43,8 +44,12 @@ QString AppPaths::updateCacheDirectory()
 
 QString AppPaths::mediaCacheDirectory()
 {
+#ifdef Q_OS_WIN
+    return QDir(updateCacheDirectory()).filePath(QStringLiteral("camera-media"));
+#else
     return QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation))
         .filePath(QStringLiteral("camera-media"));
+#endif
 }
 
 void AppPaths::migrateLegacySettings()

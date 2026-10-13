@@ -123,5 +123,5 @@ Desarrollado por Lega Pugliese — [lega.com.ar](https://lega.com.ar)
 
 Windows 10/11 de 64 bits usa Windows Portable Devices. Compilar con Qt 6.5.3 `mingw_64`,
 MinGW 13.1 y Ninja mediante `compilar.bat`, que conserva Debug/Release en carpetas separadas
-y abre la app sin retener la terminal. La validación con la cámara física en Windows sigue
-pendiente. Detalle: [backend, scripts y límites](doc/windows.md).
+y abre la app sin retener la terminal. Usa el driver nativo de Windows; no hace falta
+instalar la app de Ricoh ni un plugin en la camara. Detalle: [backend, scripts y límites](doc/windows.md).

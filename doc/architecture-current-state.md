@@ -87,7 +87,8 @@ resultados de otra seleccion. `DualFisheyePreview` identifica EXIF/RICOH antes d
 el original queda arriba y el panorama aproximado debajo. Las imagenes ya unidas no se deforman.
 
 `CameraMediaCache` guarda PNG de miniaturas, metadatos EXIF conocidos y previews JPEG
-completos bajo CacheLocation/camera-media. Los directorios son hashes del serial y de
+completos bajo CacheLocation/camera-media en macOS y cache/camera-media junto al ejecutable
+en Windows. Los directorios son hashes del serial y de
 ruta/nombre/tamaño/fechaUTC/UID; no serializa handles. Las escrituras de PNG/JSON son atomicas;
 un preview requiere decode valido, una marca de commit y la identidad/tamaño/ruta esperados.
 La huella SHA256 permite rechazar cambios de contenido aun si conservan el tamaño. Una cache

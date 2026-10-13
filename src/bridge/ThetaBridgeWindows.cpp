@@ -324,7 +324,8 @@ private:
             connected = false; catalog.clear(); queue.clear(); cameraIdentifier.clear();
             owner->cameraDisconnected();
         } else if (event == "catalog") {
-            if (!packet.value("files").isArray()) return false;
+            if (!packet.value("files").isArray()
+                || (packet.contains("complete") && !packet.value("complete").isBool())) return false;
             const auto array = packet.value("files").toArray();
             if (array.size() > 100000) return false;
             QList<CameraFileInfo> files;
@@ -336,7 +337,7 @@ private:
                 files.append(file); updated.insert(file.devicePath, file);
             }
             catalog = updated;
-            owner->catalogReady(cameraIdentifier, files, true);
+            owner->catalogReady(cameraIdentifier, files, packet.value("complete").toBool(true));
             if (owner) owner->fileListUpdated(files);
         } else if (event == "battery") {
             if (!packet.value("available").isBool() || !packet.value("percent").isDouble()) return false;

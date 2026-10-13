@@ -1,5 +1,23 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.026:
+- El traslado final de una descarga en Windows usa rutas Win32 extendidas, tambien para destinos UNC. Corrige el preview JPG y las descargas cuyo staging o destino supera 260 caracteres; la verificacion de tamaño e identidad y el reemplazo atomico se conservan.
+- [ Windows - Descargas y previews con rutas largas ]
+
+v1.025:
+- Windows limita las miniaturas pendientes al ritmo del canal USB serial. Las peticiones restantes esperan en el servicio, incluidas las de una seleccion, para no llenar la cola acotada del auxiliar ni perder imagenes durante un catalogo grande.
+- [ Windows - Cola de miniaturas USB acotada ]
+
+v1.024:
+- El catalogo de Windows muestra los archivos legibles aunque la Z1 enumere un objeto sin propiedades disponibles. Avisa cuantos objetos faltan y marca la lista como parcial para conservar la cache y no confirmar borrados por ausencias. Rutas duplicadas, estructuras invalidas y errores de enumeracion siguen rechazando el catalogo.
+- Los metadatos DNG aprovechan la miniatura nativa de WPD cuando el JPEG embebido queda fuera del prefijo de lectura de 1 MiB, sin descargar el RAW completo ni aceptar una cabecera invalida.
+- [ Windows - Catalogo Z1 parcial y metadatos DNG ]
+
+v1.023:
+- En Windows, las miniaturas, previews y descargas del actualizador quedan dentro de cache junto al ejecutable; settings e historial permanecen en AppData. Los previews temporales tambien quedan dentro de la carpeta de la app y se retiran al cerrar su sesion.
+- La deteccion del arbol de desarrollo en Windows usa marcadores de CMake y las fuentes del proyecto, sin confundir una instalacion cuyo nombre contiene build o deploy.
+- [ Windows - Cache portable y deteccion de desarrollo ]
+
 v1.022:
 - Los callbacks diferidos de ImageCaptureCore conservan una copia propia de la identidad de cada miniatura y cabecera. Evita leer una referencia local ya destruida, que hacia descartar las miniaturas y dejaba vacia la cache de imagenes en macOS.
 - [ Imagenes - Cache por camara y callbacks Mac seguros ]

@@ -17,6 +17,9 @@
 #include <utility>
 
 namespace {
+#ifdef Q_OS_WIN
+constexpr int kMaxPendingThumbnails = 8;
+#endif
 QString previewKey(const CameraFileInfo& file)
 {
     return file.devicePath + '|' + file.name + '|' + QString::number(file.sizeBytes) + '|'
@@ -342,8 +345,8 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
 void ThetaCameraService::publishCatalog()
 {
     m_catalogEnrichmentPending = false;
-    emit fileListReady(m_files);
     m_thumbnailQueue = m_files;
+    emit fileListReady(m_files);
     if (m_catalogMetadataFailed) emit errorOccurred("Some bracket metadata could not be read. Those photos remain separate.");
 }
 
@@ -399,6 +402,9 @@ void ThetaCameraService::drainThumbnailQueue()
     if (m_catalogEnrichmentPending) publishCatalog();
     // Request 3 thumbnails per tick to avoid overwhelming the camera
     for (int i = 0; i < 3 && !m_thumbnailQueue.isEmpty(); ++i) {
+#ifdef Q_OS_WIN
+        if (m_pendingThumbnails.size() >= kMaxPendingThumbnails) break;
+#endif
         CameraFileInfo fi = m_thumbnailQueue.takeFirst();
         requestThumbnail(fi);
     }
@@ -426,6 +432,15 @@ void ThetaCameraService::requestThumbnail(const CameraFileInfo& file)
     }
     for (const auto& pending : std::as_const(m_pendingThumbnails))
         if (pending.cameraIdentifier == m_cameraIdentifier && sameFile(pending.file, file)) return;
+#ifdef Q_OS_WIN
+    // WPD es serial: diferir la imagen antes de llenar la cola acotada del auxiliar.
+    if (m_pendingThumbnails.size() >= kMaxPendingThumbnails) {
+        m_thumbnailQueue.removeIf([&file](const CameraFileInfo& queued) { return queued.devicePath == file.devicePath; });
+        m_thumbnailQueue.prepend(file);
+        m_thumbnailTimer->start();
+        return;
+    }
+#endif
     const quint64 requestId = ++m_thumbnailRequestId;
     m_pendingThumbnails.insert(requestId, {file, m_cameraIdentifier});
     m_bridge->requestThumbnail(file, requestId);
@@ -739,8 +754,19 @@ void ThetaCameraService::kickNextDownload()
         }
         const bool persistent = !directory.isEmpty();
         if (!persistent) {
-            if (!m_previewDirectory) m_previewDirectory = std::make_unique<QTemporaryDir>(
-                QDir::tempPath() + "/ThetaExplorer-preview-XXXXXX");
+            if (!m_previewDirectory) {
+#ifdef Q_OS_WIN
+                const QString temporaryRoot = AppPaths::updateCacheDirectory();
+                if (!QDir().mkpath(temporaryRoot)) {
+                    emit previewError(file.devicePath, "The preview cache could not be created.");
+                    return;
+                }
+#else
+                const QString temporaryRoot = QDir::tempPath();
+#endif
+                m_previewDirectory = std::make_unique<QTemporaryDir>(
+                    QDir(temporaryRoot).filePath("ThetaExplorer-preview-XXXXXX"));
+            }
             directory = m_previewDirectory->path() + '/' + QString::fromLatin1(
                 QCryptographicHash::hash(previewKey(file).toUtf8(), QCryptographicHash::Sha256).toHex());
             if (!m_previewDirectory->isValid() || !QDir().mkpath(directory)) {

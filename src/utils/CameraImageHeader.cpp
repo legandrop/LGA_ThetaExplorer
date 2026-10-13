@@ -186,6 +186,7 @@ CameraImageHeader::Result CameraImageHeader::parse(const CameraFileInfo& file, c
     } else {
         valid = TiffHeader(header).read(result);
     }
+    result.headerValid = valid;
     if (!valid) result.error = QStringLiteral("The image header is not readable.");
     else if (file.isRaw && result.thumbnail.isNull()) result.error = QStringLiteral("The RAW embedded preview could not be read.");
     return result;

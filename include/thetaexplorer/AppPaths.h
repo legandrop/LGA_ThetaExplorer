@@ -30,9 +30,16 @@ namespace AppPaths {
         if (container.contains("build", Qt::CaseInsensitive)
             || container.contains("deploy", Qt::CaseInsensitive)) return true;
 #else
-        const QString container = info.absoluteDir().dirName();
-        if (container.contains("build", Qt::CaseInsensitive)
-            || container.contains("deploy", Qt::CaseInsensitive)) return true;
+        // Un nombre de instalación puede contener build/deploy; sólo valen marcadores reales.
+        QDir candidate(QFileInfo(path).absolutePath());
+        for (int level = 0; level <= 2; ++level) {
+            if (QFileInfo::exists(candidate.filePath(QStringLiteral("CMakeCache.txt")))) {
+                QDir source(candidate);
+                if (source.cdUp() && QFileInfo::exists(source.filePath(QStringLiteral("CMakeLists.txt")))
+                    && QDir(source.filePath(QStringLiteral("src"))).exists()) return true;
+            }
+            if (!candidate.cdUp()) break;
+        }
 #endif
         const auto inside = [&path](const QString& root) {
             const QString clean = QDir::cleanPath(root);
