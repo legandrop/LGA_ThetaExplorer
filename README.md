@@ -50,6 +50,12 @@ with its middle exposure, and you can see at a glance which sets you already dow
 This new repository has no published release packages yet. You can build from source
 using the scripts below. Future packages will appear on the Releases page.
 
+On Windows, run `LGA_ThetaExplorer_Setup_v<version>.exe` once a package is
+available. The default location is `C:\Portable\LGA\ThetaExplorer`; the installer
+includes the required runtime and can create a desktop shortcut.
+
+On macOS:
+
 1. Download `LGA_ThetaExplorer_Mac_v<version>.dmg` from
    [Releases](../../releases/latest).
 2. Open it and drag **LGA ThetaExplorer** onto **Applications**.
@@ -121,6 +127,11 @@ On Windows, use Qt 6.5.3 `mingw_64`, MinGW 13.1 and Ninja, then run `compilar.ba
 The default paths match the other LGA apps. Debug and Release have separate folders;
 `--no-run`, `--wait`, `--release` and `--parallel N` are supported.
 See [Windows backend and build](doc/windows.md) for details and validation limits.
+
+To create a Windows installer locally, install Inno Setup 6 and run
+`instalador_local.bat --no-run`. The setup and `SHA256SUMS` appear in
+`deploy/windows-v<version>/`. `instalador.bat --publish` can publish the committed
+version after an explicit confirmation. See [Packaging and release](doc/deploy.md).
 
 ## Credits
 

@@ -39,13 +39,24 @@ vista previa de la exposición del medio, y se ve de un vistazo qué sets ya des
 
 ## Requisitos
 
-- macOS 12 o posterior, en Apple Silicon o Intel.
+- macOS 12 o posterior, en Apple Silicon o Intel, o Windows 10/11 de 64 bits.
+- Windows usa su controlador WPD incorporado; no requiere software de Ricoh.
 - Una RICOH THETA conectada por USB y encendida. Probada con la **THETA Z1**.
 
 ## Instalación
 
 Este repositorio nuevo todavía no tiene paquetes de release publicados. Se puede compilar
 con los scripts del código fuente. Los paquetes futuros estarán en Releases.
+
+En Windows, cuando el paquete esté publicado, ejecutá
+`LGA_ThetaExplorer_Setup_v<version>.exe`. Instala en
+`C:\Portable\LGA\ThetaExplorer` con el runtime incluido y ofrece un acceso directo.
+Para generar el setup localmente, usá `instalador_local.bat --no-run` con Inno Setup 6
+instalado. El setup y `SHA256SUMS` quedan en `deploy/windows-v<version>/`.
+`instalador.bat --publish` verifica el commit y pide confirmación antes de publicar.
+Detalle: [Deploy y release](doc/deploy.md).
+
+En macOS:
 
 1. Bajá `LGA_ThetaExplorer_Mac_v<version>.dmg` de
    [Releases](../../releases/latest).

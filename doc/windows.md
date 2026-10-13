@@ -43,6 +43,11 @@ incluye. Su procedencia, hashes y licencia están en `third_party/wpd/NOTICE.md`
 
 ## Aislamiento y operaciones
 
+Para preparar el instalador de la version actual, usar
+`instalador_local.bat --no-run` con Inno Setup 6 instalado. El paquete Release,
+setup y SHA256SUMS quedan en `deploy/windows-v<version>/`. No se publican ni se
+ejecutan automaticamente. Flujo y limites de validacion: [Deploy](deploy.md).
+
 El mismo ejecutable corre un auxiliar `--camera-worker`, sin ventana, ajustes ni
 actualizador. COM se ejecuta en un hilo MTA; el controlador puede cancelar desde otra
 interfaz obtenida por GIT. La comunicación usa JSON UTF-8 con un pedido activo por vez,

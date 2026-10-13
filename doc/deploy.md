@@ -1,5 +1,49 @@
 # Deploy y release
 
+## Windows
+
+`instalador.bat` conserva la version actual de `CMakeLists.txt`; no la incrementa.
+Requiere el toolchain de `compilar.bat` e Inno Setup 6 (se puede indicar su
+`ISCC.exe` con `THETA_ISCC`). No instala herramientas globales automaticamente.
+
+```bat
+instalador_local.bat --no-run
+```
+
+Compila mediante `compilar.bat --release --no-run`, prepara el runtime de lista
+cerrada y valida sus imports con `tools/windows/check_deploy_runtime.ps1`, copia
+canonica del Base. Genera el `.iss`, un manifiesto de archivos, el setup
+`LGA_ThetaExplorer_Setup_v<version>.exe` y `SHA256SUMS` en
+`deploy/windows-v<version>/`. No incluye cache, fuentes, logs ni simbolos de build.
+El `.iss` se regenera: se edita `tools/windows/build_installer.ps1`.
+`--stage-only` prepara y verifica el paquete sin compilar el setup.
+
+Sin `--no-run`, ofrece instalar y revelar el setup en Explorer, con respuestas
+independientes. El modo local no requiere Git/GitHub ni ofrece publicar.
+El destino predeterminado es `C:\Portable\LGA\ThetaExplorer`; los ajustes e
+historial siguen en AppData. Al desinstalar se retira la cache propia y se conservan
+las fotos descargadas. El cierre por ruta usa el script canonico del Base y alcanza
+tambien al auxiliar WPD, que comparte el ejecutable de la app.
+
+Para publicar despues de commitear y pushear:
+
+```bat
+instalador.bat --publish
+```
+
+Requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
+repo publico correcto. Rechaza un release existente o un tag de otro commit.
+Muestra repo, version, commit y archivos; solo crea el release si se escribe
+`PUBLICAR`. Sube el setup y `SHA256SUMS` al mismo repo publico y no modifica
+permisos ni el manifiesto de LGA Updates. `--publish` no admite `--local`,
+`--stage-only`, `--no-run` ni entrada redirigida.
+
+La validacion del empaquetador genera el setup y comprueba sus hashes e insumos;
+no ejecuta el setup real ni modifica una instalacion del usuario. La instalacion
+y desinstalacion reales se comprueban con el usuario mirando.
+
+## macOS
+
 La app y su ejecutable se llaman `LGA ThetaExplorer`; el nombre corto del menu sigue
 siendo `ThetaExplorer`. Los archivos ZIP y DMG usan `LGA_ThetaExplorer_Mac_v<version>`.
 

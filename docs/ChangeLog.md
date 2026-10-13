@@ -1,6 +1,11 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.026:
+- Se prepara el primer instalador de Windows conservando la version 1.026: instalador.bat genera Release, empaqueta solo el runtime necesario y produce el setup con SHA256SUMS. instalador_local.bat permite armarlo sin GitHub; --publish verifica identidad, commit remoto y version sin publicar antes de la confirmacion final.
+- El setup instala en C:\Portable\LGA\ThetaExplorer, crea accesos directos y cierra las copias de la app con su auxiliar. La desinstalacion retira la cache propia y conserva ajustes, historial y fotos descargadas. La version se mantiene por decision expresa para el primer lanzamiento.
+- [ Windows - Primer instalador 1.026 ]
+
+v1.026:
 - El traslado final de una descarga en Windows usa rutas Win32 extendidas, tambien para destinos UNC. Corrige el preview JPG y las descargas cuyo staging o destino supera 260 caracteres; la verificacion de tamaño e identidad y el reemplazo atomico se conservan.
 - [ Windows - Descargas y previews con rutas largas ]
 
