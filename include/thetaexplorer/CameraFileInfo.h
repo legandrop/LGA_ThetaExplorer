@@ -10,6 +10,7 @@ struct CameraFileInfo {
     QString  name;
     QString  uti;           // e.g. "public.jpeg", "public.mpeg-4", "com.adobe.raw-image"
     QString  devicePath;    // unique path string from ICCameraFile.deviceFilePath
+    QString  persistentId;  // UID WPD del archivo original; vacío en macOS.
     qint64   sizeBytes  = 0;
     QDateTime creationDate;
     int      width      = 0;

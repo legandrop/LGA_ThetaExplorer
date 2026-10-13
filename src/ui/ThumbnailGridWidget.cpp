@@ -32,7 +32,21 @@ ThumbnailGridWidget::ThumbnailGridWidget(QWidget* parent)
 
 void ThumbnailGridWidget::setGroups(const QList<MediaAssetGroup>& groups)
 {
-    clearAll();
+    clearTiles();
+    QHash<QString, CameraFileInfo> identities;
+    for (const MediaAssetGroup& group : groups)
+        identities.insert(group.representativeDevicePath(), group.representative);
+    for (auto it = m_thumbnailCache.begin(); it != m_thumbnailCache.end();) {
+        const auto old = m_thumbnailIdentities.constFind(it.key());
+        const auto current = identities.constFind(it.key());
+        // Una ruta puede identificar otro objeto tras Refresh o reconectar la camara.
+        if (old == m_thumbnailIdentities.cend() || current == identities.cend()
+            || old->name != current->name || old->sizeBytes != current->sizeBytes
+            || old->creationDate != current->creationDate || old->persistentId != current->persistentId)
+            it = m_thumbnailCache.erase(it);
+        else ++it;
+    }
+    m_thumbnailIdentities = identities;
     QList<CameraFileInfo> thumbnailRequests;
     for (const MediaAssetGroup& group : groups) {
         auto* tile = new ThumbnailTileWidget(group, m_container);
@@ -54,6 +68,7 @@ void ThumbnailGridWidget::setGroups(const QList<MediaAssetGroup>& groups)
 
 void ThumbnailGridWidget::setThumbnail(const QString& devicePath, const QPixmap& thumbnail)
 {
+    if (!m_thumbnailIdentities.contains(devicePath)) return;
     if (!thumbnail.isNull()) {
         m_thumbnailCache.insert(devicePath, thumbnail);
     }
@@ -88,6 +103,13 @@ void ThumbnailGridWidget::removeFiles(const QStringList& devicePaths)
 }
 
 void ThumbnailGridWidget::clearAll()
+{
+    m_thumbnailCache.clear();
+    m_thumbnailIdentities.clear();
+    clearTiles();
+}
+
+void ThumbnailGridWidget::clearTiles()
 {
     for (ThumbnailTileWidget* tile : m_tiles) {
         tile->setParent(nullptr);

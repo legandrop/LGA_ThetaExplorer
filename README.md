@@ -2,7 +2,7 @@
 
 # Theta Explorer
 
-Browse and download the photos and videos on a **RICOH THETA** camera from your Mac, over
+Browse and download the photos and videos on a **RICOH THETA** camera from macOS or Windows, over
 USB. Made for HDRI work: each bracketed HDR sequence shows up as **one item**, previewed
 with its middle exposure, and you can see at a glance which sets you already downloaded.
 
@@ -37,10 +37,14 @@ with its middle exposure, and you can see at a glance which sets you already dow
 
 ## Requirements
 
-- macOS 12 or later, on Apple Silicon or Intel.
+- macOS 12 or later, on Apple Silicon or Intel, or Windows 10/11 64-bit.
+- Windows uses Windows Portable Devices; physical THETA validation on Windows is pending.
 - A RICOH THETA connected by USB and turned on. Tested with the **THETA Z1**.
 
 ## Install
+
+This new repository has no published release packages yet. You can build from source
+using the scripts below. Future packages will appear on the Releases page.
 
 1. Download `LGA_ThetaExplorer_Mac_v<version>.dmg` from
    [Releases](../../releases/latest).
@@ -70,9 +74,9 @@ read the files on the THETA.
 
 | Shortcut | Action |
 |---|---|
-| `⌘A` | Select all items |
+| `⌘A` / `Ctrl+A` | Select all items |
 | `Esc` | Clear the selection |
-| `⌘?` | Open the Help |
+| `⌘?` / `F1` | Open the Help |
 
 The Help window also shows where the app keeps its files, and opens them in Finder:
 
@@ -87,7 +91,7 @@ close other copies before installing an update.
 
 ## Build from source
 
-Requires Xcode command line tools, CMake and Qt 6.5.3 at `~/Qt/6.5.3/macos`.
+On macOS, requires Xcode command line tools, CMake and Qt 6.5.3 at `~/Qt/6.5.3/macos`.
 
 ```bash
 ./compilar.sh
@@ -97,6 +101,11 @@ builds a Debug universal binary (arm64 + x86_64) in `build/`, signs it and launc
 in the background. Use `--no-run` to build without launching, `--wait` to wait for the
 app to close, or `--release` to build Release in `build-release/`. `./deploy.sh`
 builds the Release version and packages the DMG.
+
+On Windows, use Qt 6.5.3 `mingw_64`, MinGW 13.1 and Ninja, then run `compilar.bat`.
+The default paths match the other LGA apps. Debug and Release have separate folders;
+`--no-run`, `--wait`, `--release` and `--parallel N` are supported.
+See [Windows backend and build](doc/windows.md) for details and validation limits.
 
 ## Credits
 

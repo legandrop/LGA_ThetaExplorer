@@ -4,6 +4,10 @@
 #include "thetaexplorer/ColorUtils.h"
 #include "thetaexplorer/Logger.h"
 #include "thetaexplorer/MediaAssetGroup.h"
+#ifdef Q_OS_WIN
+#include "thetaexplorer/ThetaCameraWorker.h"
+#include <cstring>
+#endif
 #include <QApplication>
 #include <QDateTime>
 #include <QFont>
@@ -39,6 +43,11 @@ void loadEmbeddedFonts()
 
 int main(int argc, char* argv[])
 {
+#ifdef Q_OS_WIN
+    // El auxiliar WPD no inicializa UI, settings, logger ni actualizaciones.
+    if (argc > 1 && std::strcmp(argv[1], "--camera-worker") == 0)
+        return ThetaCameraWorker::runThetaCameraWorker(argc, argv);
+#endif
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus, false);
 
     QApplication app(argc, argv);

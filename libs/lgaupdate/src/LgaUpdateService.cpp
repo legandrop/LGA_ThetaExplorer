@@ -1789,7 +1789,7 @@ if (-not (Wait-UntilGone { Get-AppProcesses } $appWaitLimitMs)) {
     # El usuario conserva su trabajo y puede reintentar despues de cerrar todas las ventanas.
     try {
         $shell = New-Object -ComObject WScript.Shell
-        $shell.Popup('The update was postponed because another FrameRev window is still open. Save your work, close every FrameRev window, and try again.', 0, 'LGA FrameRev Update', 48) | Out-Null
+        $shell.Popup('The update was postponed because another __DISPLAY_NAME__ window is still open. Save your work, close every __DISPLAY_NAME__ window, and try again.', 0, '__DISPLAY_NAME__ Update', 48) | Out-Null
     } catch {}
     Remove-Self
     exit 3
@@ -1813,6 +1813,7 @@ exit 2
 
     QString helperScript = helperTemplate;
     helperScript.replace(QStringLiteral("__EXECUTABLE_NAME__"), executableName);
+    helperScript.replace(QStringLiteral("__DISPLAY_NAME__"), QString(m_config.displayName).replace('\'', "''"));
 
     QSaveFile helperFile(helperPath);
     const QByteArray helperBytes = helperScript.toUtf8();

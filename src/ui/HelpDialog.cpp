@@ -214,11 +214,19 @@ HelpDialog::HelpDialog(const QString& downloadFolder, QWidget* parent, LgaUpdate
     keys->addWidget(description("Move between items", this), row++, 1);
     keys->addWidget(keyCombo({"Shift", "Arrows"}, this), row, 0);
     keys->addWidget(description("Extend the selection", this), row++, 1);
+#ifdef Q_OS_MAC
     keys->addWidget(keyCombo({QString::fromUtf8("⌘"), "A"}, this), row, 0);
+#else
+    keys->addWidget(keyCombo({"Ctrl", "A"}, this), row, 0);
+#endif
     keys->addWidget(description("Select all items", this), row++, 1);
     keys->addWidget(keyCombo({"Esc"}, this), row, 0);
     keys->addWidget(description("Clear the selection", this), row++, 1);
+#ifdef Q_OS_MAC
     keys->addWidget(keyCombo({QString::fromUtf8("⌘"), "?"}, this), row, 0);
+#else
+    keys->addWidget(keyCombo({"F1"}, this), row, 0);
+#endif
     keys->addWidget(description("Open this Help", this), row++, 1);
     keys->addWidget(description("Click empty space", this), row, 0);
     keys->addWidget(description("Clear the selection", this), row++, 1);

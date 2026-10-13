@@ -16,7 +16,7 @@ namespace {
 QString previewKey(const CameraFileInfo& file)
 {
     return file.devicePath + '|' + QString::number(file.sizeBytes) + '|'
-        + file.creationDate.toString(Qt::ISODateWithMs);
+        + file.creationDate.toString(Qt::ISODateWithMs) + '|' + file.persistentId;
 }
 }
 
@@ -181,12 +181,16 @@ void ThetaCameraService::onFileListUpdated(const QList<CameraFileInfo>& files)
     for (CameraFileInfo& file : updated) {
         const auto old = std::find_if(m_files.cbegin(), m_files.cend(), [&file](const CameraFileInfo& previous) {
             return previous.devicePath == file.devicePath && previous.sizeBytes == file.sizeBytes
-                && previous.creationDate == file.creationDate;
+                && previous.creationDate == file.creationDate && previous.persistentId == file.persistentId;
         });
         if (old != m_files.cend()) {
             file.exposureMode = old->exposureMode; file.exposureValue = old->exposureValue;
             file.exposureTime = old->exposureTime;
             file.width = old->width; file.height = old->height;
+        } else {
+            // Una ruta reutilizada no conserva el preview de otro objeto de la camara.
+            m_rawThumbnailCache.remove(file.devicePath);
+            m_rawFallbackAttempted.remove(file.devicePath);
         }
     }
     m_files = updated;
@@ -293,7 +297,8 @@ void ThetaCameraService::finishImageInfo(const CameraFileInfo& file, const QPixm
     m_imageInfoActive = false;
     const auto current = std::find_if(m_files.begin(), m_files.end(), [&file](const CameraFileInfo& value) {
         return value.devicePath == file.devicePath && value.nativeFileHandle == file.nativeFileHandle
-            && value.sizeBytes == file.sizeBytes && value.creationDate == file.creationDate;
+            && value.sizeBytes == file.sizeBytes && value.creationDate == file.creationDate
+            && value.persistentId == file.persistentId;
     });
     if (current != m_files.end()) {
         if (error.isEmpty()) {
@@ -361,7 +366,9 @@ void ThetaCameraService::requestPreview(const CameraFileInfo& file)
 {
     if (!m_connected || file.isRaw || file.isVideo) return;
     const auto found = std::find_if(m_files.cbegin(), m_files.cend(), [&file](const CameraFileInfo& candidate) {
-        return candidate.devicePath == file.devicePath;
+        return candidate.devicePath == file.devicePath && candidate.name == file.name
+            && candidate.sizeBytes == file.sizeBytes && candidate.creationDate == file.creationDate
+            && candidate.persistentId == file.persistentId;
     });
     if (found == m_files.cend()) return;
     const CameraFileInfo current = *found;
@@ -554,7 +561,8 @@ void ThetaCameraService::kickNextDownload()
         const CameraFileInfo requested = m_activeDownload.file;
         const auto current = std::find_if(m_files.cbegin(), m_files.cend(), [&requested](const CameraFileInfo& file) {
             return file.devicePath == requested.devicePath && file.name == requested.name
-                && file.sizeBytes == requested.sizeBytes && file.creationDate == requested.creationDate;
+                && file.sizeBytes == requested.sizeBytes && file.creationDate == requested.creationDate
+                && file.persistentId == requested.persistentId;
         });
         if (current == m_files.cend()) {
             m_activeDownload = PendingDownload{};
@@ -565,10 +573,12 @@ void ThetaCameraService::kickNextDownload()
         // Una sesion recuperada puede renovar ICCameraFile aunque la toma sea la misma.
         m_activeDownload.file.nativeFileHandle = current->nativeFileHandle;
     } else if (!m_pendingPreview.devicePath.isEmpty()) {
-        const QString path = m_pendingPreview.devicePath;
+        const CameraFileInfo requested = m_pendingPreview;
         m_pendingPreview = CameraFileInfo{};
-        const auto current = std::find_if(m_files.cbegin(), m_files.cend(), [&path](const CameraFileInfo& candidate) {
-            return candidate.devicePath == path;
+        const auto current = std::find_if(m_files.cbegin(), m_files.cend(), [&requested](const CameraFileInfo& candidate) {
+            return candidate.devicePath == requested.devicePath && candidate.name == requested.name
+                && candidate.sizeBytes == requested.sizeBytes && candidate.creationDate == requested.creationDate
+                && candidate.persistentId == requested.persistentId;
         });
         if (current == m_files.cend()) return;
         const CameraFileInfo file = *current;

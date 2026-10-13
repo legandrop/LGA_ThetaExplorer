@@ -105,3 +105,9 @@ catalogo desde los archivos restantes, incluido un formato superviviente en caso
 - `src/services/ThetaCameraService.cpp`: cola serial, cache temporal y rutas de preview.
 - `src/ui/PreviewPanel.cpp`: worker, seleccion vigente y dos areas de imagen.
 - `src/utils/DualFisheyePreview.cpp`: proyeccion EXIF/RICOH y reproyeccion equidistante.
+
+## Plataformas desde 1.018
+
+El proyecto conserva la UI Qt común y selecciona ImageCaptureCore en macOS o WPD en
+Windows. El auxiliar Windows aísla COM del proceso gráfico y usa identidad persistente
+además de nombre/tamaño/fecha para las operaciones. Detalle y límites en [Windows](windows.md).

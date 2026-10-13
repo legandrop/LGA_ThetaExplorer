@@ -35,6 +35,7 @@ private slots:
     void onTileClicked(ThumbnailTileWidget* tile, Qt::KeyboardModifiers mods);
 
 private:
+    void clearTiles();
     void selectTile(ThumbnailTileWidget* tile, Qt::KeyboardModifiers mods);
     void relayoutGrid();
     int  columnCount() const;
@@ -45,6 +46,7 @@ private:
     ThumbnailTileWidget*         m_lastClicked = nullptr;
     ThumbnailTileWidget*         m_currentTile = nullptr;
     QHash<QString, QPixmap>      m_thumbnailCache;
+    QHash<QString, CameraFileInfo> m_thumbnailIdentities;
 
     static constexpr int SPACING = 8;
     static constexpr int LEFT_MARGIN = 8;

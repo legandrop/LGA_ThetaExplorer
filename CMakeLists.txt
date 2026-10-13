@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-project(ThetaExplorer VERSION 1.017 LANGUAGES CXX OBJCXX)
+project(ThetaExplorer VERSION 1.018 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OBJCXX_STANDARD 17)
-set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
-
 if(APPLE)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_STANDARD 17)
+    set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version")
     execute_process(
         COMMAND xcrun --show-sdk-path
@@ -50,10 +50,12 @@ if(APPLE)
     set(OPENGL_AGL_INCLUDE_DIR "" CACHE PATH "AGL include dir" FORCE)
 endif()
 
-if(WIN32)
-    set(CMAKE_PREFIX_PATH "C:/Qt/6.5.3/mingw_64")
-else()
-    set(CMAKE_PREFIX_PATH "$ENV{HOME}/Qt/6.5.3/macos")
+if(NOT CMAKE_PREFIX_PATH)
+    if(WIN32)
+        set(CMAKE_PREFIX_PATH "C:/Qt/6.5.3/mingw_64")
+    else()
+        set(CMAKE_PREFIX_PATH "$ENV{HOME}/Qt/6.5.3/macos")
+    endif()
 endif()
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Concurrent Svg Network)
@@ -111,15 +113,18 @@ set(SOURCES
     src/utils/DualFisheyePreview.cpp
 )
 
-# ---- Objective-C++ bridge: SKIP_AUTOMOC prevents moc from processing .mm ----
-set(OBJCXX_SOURCES
-    src/bridge/ThetaBridge.mm
-)
-set_source_files_properties(${OBJCXX_SOURCES}
-    PROPERTIES
-        COMPILE_FLAGS "-x objective-c++ -fobjc-arc"
-        SKIP_AUTOMOC ON
-)
+# Backend nativo independiente por plataforma; la UI conserva el contrato Qt.
+if(APPLE)
+    set(OBJCXX_SOURCES src/bridge/ThetaBridge.mm)
+    set_source_files_properties(${OBJCXX_SOURCES} PROPERTIES
+        COMPILE_FLAGS "-x objective-c++ -fobjc-arc" SKIP_AUTOMOC ON)
+elseif(WIN32)
+    list(APPEND SOURCES src/bridge/ThetaBridgeWindows.cpp
+        src/bridge/ThetaCameraWorker.cpp src/utils/CameraImageHeader.cpp
+        resources/windows-icon.rc)
+else()
+    message(FATAL_ERROR "Theta Explorer supports macOS and Windows.")
+endif()
 
 set(HEADERS
     include/thetaexplorer/ColorUtils.h
@@ -223,6 +228,21 @@ if(APPLE)
     endif()
     set_source_files_properties(${APP_ICON_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON_FILES})
+endif()
+
+
+
+if(WIN32)
+    target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+    include(CheckIncludeFileCXX)
+    check_include_file_cxx("portabledeviceapi.h" THETA_HAS_WPD_API)
+    check_include_file_cxx("portabledevice.h" THETA_HAS_WPD_PROPERTIES)
+    if(NOT THETA_HAS_WPD_API OR NOT THETA_HAS_WPD_PROPERTIES)
+        target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/wpd")
+    endif()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00 WINVER=0x0A00 NTDDI_VERSION=0x0A000000)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ole32 oleaut32 uuid cfgmgr32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE OUTPUT_NAME "LGA_ThetaExplorer")
 endif()
 
 

@@ -2,7 +2,7 @@
 
 # Theta Explorer
 
-Explorá y descargá las fotos y videos de una cámara **RICOH THETA** desde tu Mac, por USB.
+Explorá y descargá las fotos y videos de una cámara **RICOH THETA** desde macOS o Windows, por USB.
 Pensada para trabajar con HDRIs: cada secuencia HDR aparece como **un solo ítem**, con la
 vista previa de la exposición del medio, y se ve de un vistazo qué sets ya descargaste.
 
@@ -43,6 +43,9 @@ vista previa de la exposición del medio, y se ve de un vistazo qué sets ya des
 
 ## Instalación
 
+Este repositorio nuevo todavía no tiene paquetes de release publicados. Se puede compilar
+con los scripts del código fuente. Los paquetes futuros estarán en Releases.
+
 1. Bajá `LGA_ThetaExplorer_Mac_v<version>.dmg` de
    [Releases](../../releases/latest).
 2. Abrilo y arrastrá **LGA ThetaExplorer** a **Applications**.
@@ -71,9 +74,9 @@ para leer los archivos de la THETA.
 
 | Atajo | Acción |
 |---|---|
-| `⌘A` | Seleccionar todo |
+| `⌘A` / `Ctrl+A` | Seleccionar todo |
 | `Esc` | Deseleccionar |
-| `⌘?` | Abrir la ayuda |
+| `⌘?` / `F1` | Abrir la ayuda |
 
 La ventana de Help muestra también dónde guarda la app sus archivos, y los abre en Finder:
 
@@ -108,3 +111,10 @@ Canary Wharf, Fireplace y Photo Studio Loft Hall.
 ## Autor
 
 Desarrollado por Lega Pugliese — [lega.com.ar](https://lega.com.ar)
+
+## Windows
+
+Windows 10/11 de 64 bits usa Windows Portable Devices. Compilar con Qt 6.5.3 `mingw_64`,
+MinGW 13.1 y Ninja mediante `compilar.bat`, que conserva Debug/Release en carpetas separadas
+y abre la app sin retener la terminal. La validación con la cámara física en Windows sigue
+pendiente. Detalle: [backend, scripts y límites](doc/windows.md).

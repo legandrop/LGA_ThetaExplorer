@@ -110,6 +110,9 @@ bool areAdjacentHdrCandidates(const QList<CameraFileInfo>& run, const CameraFile
     if (previous.isVideo || current.isVideo) {
         return false;
     }
+    if (previous.devicePath.isEmpty() || current.devicePath.isEmpty()
+        || QDir::cleanPath(QFileInfo(previous.devicePath).path())
+            != QDir::cleanPath(QFileInfo(current.devicePath).path())) return false;
 
     const ParsedName prevName = parseName(previous.name);
     const ParsedName currName = parseName(current.name);
@@ -123,9 +126,6 @@ bool areAdjacentHdrCandidates(const QList<CameraFileInfo>& run, const CameraFile
         if (previous.exposureMode != 2 || current.exposureMode != 2
             || !std::isfinite(previous.exposureValue) || !std::isfinite(current.exposureValue)
             || !prevName.hasNumber || !currName.hasNumber || currName.number - prevName.number != 1
-            || previous.devicePath.isEmpty() || current.devicePath.isEmpty()
-            || QDir::cleanPath(QFileInfo(previous.devicePath).path())
-                != QDir::cleanPath(QFileInfo(current.devicePath).path())
             || !previous.creationDate.isValid() || !current.creationDate.isValid()) return false;
         const qint64 gapMs = previous.creationDate.msecsTo(current.creationDate);
         if (gapMs < 0 || gapMs > 5 * 60 * 1000) return false;
@@ -139,7 +139,8 @@ bool areAdjacentHdrCandidates(const QList<CameraFileInfo>& run, const CameraFile
     if (std::isfinite(previous.exposureValue) && std::isfinite(current.exposureValue)
         && std::abs(current.exposureValue - previous.exposureValue) < minExposureStep) return false;
 
-    if (previous.creationDate.isValid() && current.creationDate.isValid()) {
+    if (!previous.creationDate.isValid() || !current.creationDate.isValid()) return false;
+    {
         const qint64 gapMs = previous.creationDate.msecsTo(current.creationDate);
         if (gapMs < 0 || gapMs > 2500) {
             return false;

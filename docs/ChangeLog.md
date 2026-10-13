@@ -1,5 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.018:
+- Windows incorpora acceso USB mediante Windows Portable Devices en un auxiliar aislado: descubre la THETA, enumera sus archivos, lee miniaturas y metadatos, descarga con verificacion de bytes y permite borrar solo los objetos confirmados. Las operaciones conservan identidad de sesion y archivo, rechazan rutas ambiguas y no se repiten automaticamente tras un timeout.
+- compilar.bat conserva Debug/Release separados, copia el runtime por rutas explicitas y abre la app sin retener la terminal. Refresh permite reiniciar la busqueda sin camara; Help muestra los atajos de cada plataforma y el actualizador identifica el ejecutable de Windows. Las miniaturas y metadatos se invalidan cuando cambia la identidad persistente; fechas desconocidas o carpetas diferentes no forman HDRI por proximidad.
+- [ Windows - Camara USB y runtime ]
+
 v1.017:
 - La preparacion de Windows usa un runtime de herramientas embebido y fijado por version/SHA256, sin depender del Python global del runner. Se instala MinGW13.1 desde el paquete oficial disponible, coincidente con el toolchain del resto de las apps.
 - [ Build - Runtime propio y toolchain Windows ]

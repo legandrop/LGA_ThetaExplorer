@@ -14,6 +14,13 @@
 #include "thetaexplorer/UiIcons.h"
 #include "thetaexplorer/Logger.h"
 #include "thetaexplorer/popover/MessagePopover.h"
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <tlhelp32.h>
+#endif
 #include <QAction>
 #include <QApplication>
 #include <QDateTime>
@@ -30,6 +37,7 @@
 #include <QPushButton>
 #include <QProgressBar>
 #include <QProcess>
+#include <QScopedPointer>
 #include <QStatusBar>
 #include <QStyle>
 #include <QSettings>
@@ -456,6 +464,66 @@ QString MainWindow::updateInstallBlockedReason() const
         return "Wait for the camera download or deletion to finish before updating.";
     }
 
+#ifdef Q_OS_WIN
+    // Enumerar por nombre nativo y excluir solamente el auxiliar hijo de esta instancia.
+    const DWORD ownPid = DWORD(QApplication::applicationPid());
+    const QString executable = QFileInfo(QApplication::applicationFilePath()).fileName();
+    const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return "The running copies could not be checked. Please try updating again.";
+    PROCESSENTRY32W entry{};
+    entry.dwSize = sizeof(entry);
+    bool otherCopy = false;
+    if (!Process32FirstW(snapshot, &entry)) {
+        CloseHandle(snapshot);
+        return "The running copies could not be checked. Please try updating again.";
+    }
+    {
+        do {
+            if (entry.th32ProcessID == ownPid) continue;
+            if (QString::fromWCharArray(entry.szExeFile).compare(executable, Qt::CaseInsensitive) != 0) continue;
+            // El worker corre el mismo exe. Un hijo con ruta distinta no queda exceptuado.
+            bool ownWorker = false;
+            if (entry.th32ParentProcessID == ownPid) {
+                const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID);
+                wchar_t path[32768]; DWORD length = 32768;
+                if (process) {
+                    if (QueryFullProcessImageNameW(process, 0, path, &length))
+                        ownWorker = QDir::fromNativeSeparators(QString::fromWCharArray(path, int(length)))
+                            .compare(QDir::fromNativeSeparators(QApplication::applicationFilePath()), Qt::CaseInsensitive) == 0;
+                    CloseHandle(process);
+                }
+            }
+            if (!ownWorker) { otherCopy = true; break; }
+        } while (Process32NextW(snapshot, &entry));
+    }
+    CloseHandle(snapshot);
+    if (otherCopy) return "Close the other Theta Explorer windows before updating.";
+    // Los helpers de instalacion son PowerShell; consultar solo sus comandos, sin cerrar nada.
+    const QString helperPrefix = QDir(LgaUpdateService::resolveUpdateDir(AppPaths::updateCacheDirectory()))
+        .filePath("LGA_ThetaExplorer_Update_Helper_");
+    QScopedPointer<QProcess> reader(new QProcess);
+    reader->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
+        args->flags |= CREATE_NO_WINDOW;
+    });
+    const QString script = QStringLiteral("$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); "
+        "@(Get-CimInstance Win32_Process -Filter \"Name='powershell.exe' OR Name='pwsh.exe'\" "
+        "| ForEach-Object {$_.CommandLine}) | ConvertTo-Json -Compress");
+    reader->start("powershell.exe", {"-NoProfile", "-NonInteractive", "-Command", script});
+    if (!reader->waitForFinished(5000)) { reader->kill(); reader->waitForFinished(1000); }
+    if (reader->state() != QProcess::NotRunning) {
+        // No destruir un QProcess vivo: esperar su final sin bloquear la ventana.
+        QProcess* detached = reader.take();
+        connect(detached, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), detached, &QObject::deleteLater);
+        return "The update helpers could not be checked. Please try updating again.";
+    }
+    if (reader->exitStatus() != QProcess::NormalExit || reader->exitCode() != 0)
+        return "The update helpers could not be checked. Please try updating again.";
+    const QString rows = QString::fromUtf8(reader->readAllStandardOutput()).replace("\\\\", "/").replace('\\', '/');
+    if (rows.contains(QDir::fromNativeSeparators(helperPrefix), Qt::CaseInsensitive))
+        return "Wait for the current Theta Explorer update to finish before starting another.";
+    return {};
+#else
     // Las copias instaladas comparten cache; no barrerla mientras otra copia o helper la usa.
     const auto processRows = [](const QString& column, QHash<qint64, QString>& rows) {
         QProcess reader;
@@ -493,6 +561,7 @@ QString MainWindow::updateInstallBlockedReason() const
         }
     }
     return {};
+#endif
 }
 
 void MainWindow::setupUpdates()
@@ -500,6 +569,7 @@ void MainWindow::setupUpdates()
     LgaUpdateConfig config;
     config.productId = "LGA_ThetaExplorer";
     config.displayName = "Theta Explorer";
+    config.windowsExecutableName = "LGA_ThetaExplorer.exe";
     config.releaseRepoSlug = "legandrop/LGA_ThetaExplorer";
     config.settingsPath = AppPaths::settingsFile();
     config.updateCacheDir = AppPaths::updateCacheDirectory();
@@ -1171,7 +1241,12 @@ void MainWindow::updateButtonStates()
     m_downloadBtn->setEnabled(hasCamera && hasSelected && !busy);
     m_deleteBtn->setEnabled(hasCamera && hasSelected && !busy);
     m_folderBtn->setEnabled(!busy);
+#ifdef Q_OS_WIN
+    // Permitir reiniciar la busqueda aunque el auxiliar se haya detenido o no haya camara.
+    m_refreshBtn->setEnabled(!busy);
+#else
     m_refreshBtn->setEnabled(hasCamera && !busy);
+#endif
     m_downloadBtn->setText(hasSelected ? QString("Download %1").arg(m_selectedGroups.size())
                                        : QString("Download"));
     m_selectionLabel->setText(hasSelected
