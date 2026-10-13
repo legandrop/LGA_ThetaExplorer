@@ -1,5 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.017:
+- La preparacion de Windows usa un runtime de herramientas embebido y fijado por version/SHA256, sin depender del Python global del runner. Se instala MinGW13.1 desde el paquete oficial disponible, coincidente con el toolchain del resto de las apps.
+- [ Build - Runtime propio y toolchain Windows ]
+
 v1.016:
 - La verificacion de Windows usa Qt6.5.3/MinGW en un runner independiente y acepta una candidata temporal con SHA256 y rutas acotadas, sin modificar la rama ni crear releases. Se separan Debug y Release y se comprueba el cierre del auxiliar de camara sin dispositivo fisico.
 - [ Build - Verificacion multiplataforma ]

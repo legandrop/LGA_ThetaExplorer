@@ -33,22 +33,34 @@ jobs:
       - name: Install Qt and MinGW
         shell: pwsh
         run: |
-          $pythonExe = (Get-Command python.exe).Source
+          $runtime = Join-Path $env:RUNNER_TEMP 'theta-build/python_runtime/windows'
+          New-Item -ItemType Directory -Force $runtime | Out-Null
+          $runtimeZip = Join-Path $env:RUNNER_TEMP 'theta-python-3.11.9.zip'
+          Invoke-WebRequest 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip' -OutFile $runtimeZip
+          if ((Get-FileHash $runtimeZip -Algorithm SHA256).Hash -ne '009d6bf7e3b2ddca3d784fa09f90fe54336d5b60f0e0f305c37f400bf83cfd3b') { throw 'Python runtime checksum mismatch' }
+          Expand-Archive $runtimeZip -DestinationPath $runtime
+          $pth = Join-Path $runtime 'python311._pth'
+          [IO.File]::WriteAllText($pth, [IO.File]::ReadAllText($pth).Replace('#import site', 'import site'), [Text.UTF8Encoding]::new($false))
+          $pythonExe = Join-Path $runtime 'python.exe'
+          $bootstrap = Join-Path $runtime 'get-pip.py'
+          Invoke-WebRequest 'https://raw.githubusercontent.com/pypa/get-pip/af54dfe793b24685f8dc4ebba0630d9f2d77653c/public/get-pip.py' -OutFile $bootstrap
+          & $pythonExe $bootstrap --no-warn-script-location pip==24.3.1
+          if ($LASTEXITCODE -ne 0) { throw 'pip bootstrap failed' }
           & $pythonExe -m pip install --disable-pip-version-check aqtinstall==3.3.0
           if ($LASTEXITCODE -ne 0) { throw 'aqt installation failed' }
           & $pythonExe -m aqt install-qt windows desktop 6.5.3 win64_mingw -O C:\Qt
           if ($LASTEXITCODE -ne 0) { throw 'Qt installation failed' }
-          & $pythonExe -m aqt install-tool windows desktop tools_mingw qt.tools.win64_mingw1120 -O C:\Qt
+          & $pythonExe -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 -O C:\Qt
           if ($LASTEXITCODE -ne 0) { throw 'MinGW installation failed' }
       - name: Build and deploy runtime
         shell: cmd
         env:
-          THETA_MINGW_BIN: C:\Qt\Tools\mingw1120_64\bin
+          THETA_MINGW_BIN: C:\Qt\Tools\mingw1310_64\bin
         run: compilar.bat --release --no-run --parallel 2
       - name: Build Debug and deploy runtime
         shell: cmd
         env:
-          THETA_MINGW_BIN: C:\Qt\Tools\mingw1120_64\bin
+          THETA_MINGW_BIN: C:\Qt\Tools\mingw1310_64\bin
         run: compilar.bat --no-run --parallel 2
       - name: Verify camera worker without a device
         shell: pwsh
