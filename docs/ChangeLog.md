@@ -1,6 +1,10 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.026:
+- El aviso de una entrada de camara ilegible explica que Windows no pudo identificar el item, cuantos archivos legibles siguen disponibles y que no hace falta actuar. Ya no pide Refresh durante una carga normal. La pantalla de carga indica que prepara grupos HDR y pide esperar mientras avanza el contador.
+- [ Windows - Aviso de camara y carga mas claros ]
+
+v1.026:
 - El instalador conserva las preguntas Y/N del resto de las apps y ofrece publicar en GitHub al final sin requerir flags, despues de las ofertas independientes de instalar y revelar el archivo. El modo local y las corridas sin interaccion no publican.
 - La primera lectura de metadatos muestra cuantos archivos se encontraron y cuantas fotos se procesaron. Refresh permite reiniciar esa lectura sin esperar a que termine, invalidando respuestas viejas; sigue bloqueado durante descargas, recuperacion de transferencias y borrados. El aviso de catalogo parcial ya no afirma que la grilla esta visible mientras se leen los metadatos.
 - [ Windows - Instalador YN y progreso con Refresh ]

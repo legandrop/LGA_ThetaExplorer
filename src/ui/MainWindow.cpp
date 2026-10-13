@@ -654,10 +654,10 @@ void MainWindow::updateGridPage()
         m_gridStack->setCurrentIndex(1);
     } else if (!m_catalogLoaded) {
         const QString detail = m_catalogMetadataTotal > 0
-            ? QString("Found %1 files. Reading bracket metadata: %2 of %3 photos. "
-                      "You can refresh to restart the scan.")
+            ? QString("Found %1 files. Preparing HDR groups: %2 of %3 photos. "
+                      "Please wait while the camera data is read.")
                   .arg(m_service->fileList().size()).arg(m_catalogMetadataCompleted).arg(m_catalogMetadataTotal)
-            : QString("Reading the camera file list. You can refresh to restart the scan.");
+            : QString("Reading the camera file list. Please wait.");
         m_emptyState->setContent("Loading camera files",
             detail, false);
         m_gridStack->setCurrentIndex(1);

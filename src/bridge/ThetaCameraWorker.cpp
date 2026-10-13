@@ -576,8 +576,9 @@ bool WpdWorker::catalog()
     QJsonArray files;
     for (const Entry& entry : std::as_const(entries)) files.append(ThetaCameraWorker::fileToJson(entry.file));
     reply("catalog", {{"files", files}, {"complete", unreadable == 0}});
-    if (unreadable) fail(QString("The camera catalog is partial (%1 unreadable object%2). Refresh to retry.")
-        .arg(unreadable).arg(unreadable == 1 ? "" : "s"));
+    if (unreadable) fail(QString("Windows could not identify %1 item%2 on the camera. "
+        "The %3 readable files are still available. No action is needed.")
+        .arg(unreadable).arg(unreadable == 1 ? "" : "s").arg(entries.size()));
     battery();
     return true;
 }
