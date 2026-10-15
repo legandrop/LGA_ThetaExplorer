@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- `deploy.sh` e `instalador.bat` preguntan siempre si publicar en GitHub y, si falta el bump, ofrecen correrlo en vez de armar solo lo local sin avisar.
+- [ Deploy - Preguntar siempre si publicar ]
+
 - Cuando el bump de version quedo hecho pero sin commitear, `bump_version --check` explica que hay que commitearlo o descartarlo con `git checkout` antes de volver a correr el bump.
 - [ Versionado - Mensaje del check con bump sin commitear ]
 

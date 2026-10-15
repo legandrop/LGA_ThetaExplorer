@@ -67,15 +67,23 @@ try {
     if (-not $match.Success) { throw 'No se pudo leer la version de CMake' }
     $version = $match.Groups[1].Value
     # CMakeLists.txt guarda la ultima version PUBLICADA y el ChangeLog la EN DESARROLLO: el numero
-    # sube solo con bump_version.bat, que corre Lega al publicar. Sin el bump se arma el instalador
-    # local con la version publicada y no se ofrece publicar.
+    # sube solo con bump_version.bat, que corre Lega al publicar. Sin el bump la pregunta por
+    # publicar se hace igual: publicar arranca por bump_version.bat, que sube el numero, commitea,
+    # pushea y despues ofrece este mismo instalador con --publish. Si se dice que no, se arma el
+    # instalador local con la version publicada.
     $interactive = -not $NoRun -and -not [Console]::IsInputRedirected
     $offerPublication = -not $LocalOnly -and -not $StageOnly -and $interactive
     if ($offerPublication -or $Publish) {
         & (Join-Path $root 'tools\bump_version.ps1') -Check
         if ($LASTEXITCODE -ne 0) {
             if ($Publish) { throw 'Falta el bump de version: correr bump_version.bat' }
-            Write-Warning "Falta el bump de version (bump_version.bat): se genera el instalador local de v$version, sin publicar."
+            Write-Host 'Falta el bump de version para publicar.'
+            Confirm-Choice 'Publicar en GitHub? Primero corre bump_version.bat, que despues ofrece publicar'
+            if ($LASTEXITCODE -eq 1) {
+                & "$env:SystemRoot\System32\cmd.exe" /c (Join-Path $root 'bump_version.bat')
+                exit $LASTEXITCODE
+            }
+            Write-Host "Se genera el instalador local de v$version, sin publicar."
             $offerPublication = $false
         }
     }

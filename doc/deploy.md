@@ -16,8 +16,9 @@ commiteados y con la identidad de `legandrop`; sube `CMakeLists.txt` a la versio
 (un salto mayor que `+0.001` se confirma); commitea solo ese archivo y pushea (lista antes los
 commits locales que salen en el mismo push); y ofrece publicar con `./deploy.sh --zip --dmg
 --publish` o `instalador.bat`. `--check` no escribe: sale 0 si `CMakeLists.txt` y el changelog
-coinciden y el bump esta commiteado. `deploy.sh` e `instalador.bat` lo usan antes de publicar:
-sin bump arman lo local con la version publicada y no ofrecen publicar (con `--publish`, cortan).
+coinciden y el bump esta commiteado. `deploy.sh` e `instalador.bat` lo usan antes de publicar y
+con terminal preguntan siempre si publicar: sin bump, el "si" corre el bump (que despues ofrece
+publicar) y el "no" arma lo local con la version publicada; con `--publish`, sin bump cortan.
 El release es uno solo y no importa que plataforma publique primero: la segunda le suma sus
 archivos. Las dos tienen que publicar desde el commit del bump, porque el tag `v<version>` apunta
 ahi y ninguna lo mueve.
@@ -100,8 +101,9 @@ al usuario, no el script. La firma local no instala la app ni publica un release
 ## Que hace
 
 1. **Version**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Si el bump no esta
-   hecho y commiteado (`./bump_version.sh --check`), arma lo local con esa version y no ofrece
-   publicar; con `--publish` corta, y con `--dry-run` solo avisa.
+   hecho y commiteado (`./bump_version.sh --check`), pregunta igual si publicar: el "si" pasa a
+   `./bump_version.sh`, que despues ofrece este deploy con `--publish`, y el "no" arma lo local
+   con esa version. Con `--publish` corta, y con `--dry-run` solo avisa.
 2. **Si se va a publicar, chequea antes de compilar**: `gh` autenticado, repo publico, git con
    la cuenta `legandrop` (176236735), working tree limpio, branch `main` y `HEAD` igual a
    `origin/main`. El tag apunta a `HEAD`, asi que con algo sin commitear o sin pushear el

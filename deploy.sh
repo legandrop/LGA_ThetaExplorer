@@ -102,8 +102,15 @@ if ! bumpout="$(sh ./bump_version.sh --check 2>&1)"; then
     if [[ "$PUBLISH_MODE" == "always" && "$DRY_RUN" == "true" ]]; then
         echo "AVISO (dry-run): falta el bump de version (./bump_version.sh); el ensayo sigue."
     else
-        echo "AVISO: falta el bump de version (./bump_version.sh): deploy local de v$APP_VERSION, sin publicar."
+        echo "Falta el bump de version para publicar:"
         printf '%s\n' "$bumpout" | sed 's/^/       /'
+        # La pregunta por la publicacion se hace igual: publicar arranca por el bump, que sube
+        # el numero, commitea, pushea y despues ofrece este mismo deploy con --publish.
+        if [[ "$PUBLISH_MODE" == "prompt" && "$DRY_RUN" != "true" && "$INTERACTIVE" == "true" ]] \
+            && ask_yes_no "Publicar en GitHub? Primero corre ./bump_version.sh, que despues ofrece publicar" "N"; then
+            exec sh ./bump_version.sh
+        fi
+        echo "Deploy local de v$APP_VERSION, sin publicar."
         PUBLISH_MODE="never"
     fi
 fi
