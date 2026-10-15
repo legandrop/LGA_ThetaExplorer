@@ -149,7 +149,8 @@ al usuario, no el script. La firma local no instala la app ni publica un release
 Sin terminal no pregunta nada y hace solo lo que digan los flags: `--zip`, `--dmg`,
 `--publish` (implica `--zip --dmg`), `--no-publish` (ni publica ni pregunta), y con `--publish`:
 `--dry-run` (todo menos escribir en GitHub y en el repo), `--replace` (re-publicar sobre un
-release que ya tiene los archivos de macOS) y `--yes`. Ademas `--no-install`, `--no-open`,
+release que ya tiene los archivos de macOS) y `--yes`, que en esta app no cambia nada: solo saltea el
+control de las notas para el usuario (What's new), que Theta no usa. Ademas `--no-install`, `--no-open`,
 `--no-open-finder` y `--parallel N`.
 
 ## Fondo del DMG

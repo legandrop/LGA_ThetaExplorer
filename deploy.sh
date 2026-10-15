@@ -34,7 +34,7 @@ show_help() {
     echo "  --no-publish      No publicar ni preguntar"
     echo "  --dry-run         Con --publish: todo menos escribir en GitHub y en el repo"
     echo "  --replace         Con --publish: reemplazar los archivos de macOS si el release ya los tiene"
-    echo "  --yes             Con --publish: no preguntar en los controles de la publicacion"
+    echo "  --yes             Con --publish: sin efecto en esta app (solo saltea el control del What's new, que no usa)"
     echo "  --no-install      No instalar en /Applications ni abrir la app (deja solo deploy/)"
     echo "  --no-open         Instalar en /Applications pero no abrir la app"
     echo "  --no-open-finder  No mostrar el resultado en Finder al terminar"

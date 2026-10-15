@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - Lo que faltaba decir de la publicacion con `publish_release.sh`: `--dry-run` ya no solo avisa, corta igual que una publicacion real (arbol limpio, el bump hecho y, si el tag es nuevo, HEAD en la punta de `origin/main`); se quita el override `LGA_RELEASE_REPO`, porque con otro repo la pieza lo trata como repo de release aparte; y `--yes` queda aceptado pero sin efecto en esta app (solo saltea el control del What's new, que Theta no usa), como lo dicen ahora la ayuda y `doc/deploy.md`.
+- [ Deploy Mac - Aclarar --dry-run, --yes y LGA_RELEASE_REPO ]
+
 - Mac - La publicacion de `deploy.sh` pasa a `tools/macos/publish_release.sh`, copia identica de la pieza canonica de `LGA_Base_QT_C_Py`, con lo propio de esta app en `tools/macos/release.conf` (version de `CMakeLists.txt`, `bump_version.sh --check`, titulo y notas del release; sin What's new ni `SHA256SUMS` de macOS, para no romper la subida de Windows). Se llama antes de compilar y otra vez con el ZIP y el DMG armados. Cambios de comportamiento: publicar implica el ZIP y el DMG y se pregunta primero; si el tag ya existe tiene que apuntar a HEAD; un release que ya tiene los archivos de macOS pide `--replace` (antes los reemplazaba); `--dry-run`, `--replace` y `--yes` van solo con `--publish`; no hay mas confirmacion final despues de compilar (`--publish` publica), y si la publicacion falla la app se instala igual y el script sale con error.
 - [ Deploy Mac - Publicar con la pieza comun publish_release.sh ]
 
