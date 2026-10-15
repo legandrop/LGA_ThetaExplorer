@@ -592,6 +592,25 @@ void MainWindow::setupUpdates()
     config.quitApplication = [this] {
         if (close()) QApplication::quit();
     };
+    // Los carteles del updater salen con el ConfirmDialog de la app.
+    config.presentDialog = [](QWidget* parent, const LgaUpdateDialogSpec& update) {
+        ConfirmDialog::Spec spec;
+        spec.iconName = update.iconName;
+        spec.title = update.title;
+        spec.subtitle = update.messageHtml;
+        spec.hintHtml = update.hintHtml;
+        spec.contentHtml = update.notesHtml;
+        spec.details = update.details;
+        for (const LgaUpdateDialogSpec::Button& button : update.buttons) {
+            spec.buttons.append({button.text,
+                                 button.primary ? ConfirmDialog::ButtonStyle::Action
+                                                : ConfirmDialog::ButtonStyle::Neutral,
+                                 button.shortcut});
+        }
+        spec.defaultIndex = update.defaultIndex;
+        spec.escapeIndex = update.escapeIndex;
+        return ConfirmDialog::ask(parent, spec);
+    };
     m_updateService = new LgaUpdateService(config, this);
     m_updateService->scheduleAutomaticCheck();
 }

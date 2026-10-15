@@ -1,6 +1,12 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Auto-update (Mac): si el helper posterga el update porque sigue abierta otra ventana de Theta Explorer, la notificacion ahora dice que se postergo y pide cerrarlas; antes decia que la app "was restored". Viene de la `libs/lgaupdate` canonica, que ademas suma `relaunchWhenUpdatePostponed` (Theta no lo usa: no reabre para no sumar una ventana).
+- [ Updates - Aviso de update postergado en Mac ]
+
+- Auto-update: `libs/lgaupdate` pasa a ser copia identica de la pieza canonica de `../LGA_Base_QT_C_Py` (rev 1), que nacio de esta copia y ahora usan tambien FrameRev, Media Tools y Video Downloader. Ya no incluye `thetaexplorer/ConfirmDialog.h` ni la carpeta `include/` de la app: describe cada cartel con un `LgaUpdateDialogSpec` y `MainWindow::setupUpdates()` lo traduce a `ConfirmDialog` en `presentDialog`. El servicio decide por el rol del boton, no por su posicion. Sin cambios visibles. Verificado en Mac: compila; el update de punta a punta se probo con Video Downloader, que usa la misma copia.
+- [ Updates - lgaupdate como copia de la pieza canonica ]
+
 - `deploy.sh` (macOS) termina con la app instalada en `/Applications` y abierta, también cuando publica: el `.app` de `deploy/` no se ejecuta nunca, porque es el que se empaqueta y ejecutarlo le rompe la firma que verifica el auto-update. Lo hacen `tools/macos/install_to_applications.sh` y `tools/macos/verify_bundle_signature.sh`, copias idénticas de las piezas canónicas de `LGA_Base_QT_C_Py`; la firma se verifica después de firmar, antes del ZIP y antes del DMG. Flags `--no-install` y `--no-open`; la pregunta de Finder sigue.
 - [ Deploy Mac - Instalar en Applications y abrir al terminar ]
 
