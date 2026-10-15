@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - La publicacion de `deploy.sh` pasa a `tools/macos/publish_release.sh`, copia identica de la pieza canonica de `LGA_Base_QT_C_Py`, con lo propio de esta app en `tools/macos/release.conf` (version de `CMakeLists.txt`, `bump_version.sh --check`, titulo y notas del release; sin What's new ni `SHA256SUMS` de macOS, para no romper la subida de Windows). Se llama antes de compilar y otra vez con el ZIP y el DMG armados. Cambios de comportamiento: publicar implica el ZIP y el DMG y se pregunta primero; si el tag ya existe tiene que apuntar a HEAD; un release que ya tiene los archivos de macOS pide `--replace` (antes los reemplazaba); `--dry-run`, `--replace` y `--yes` van solo con `--publish`; no hay mas confirmacion final despues de compilar (`--publish` publica), y si la publicacion falla la app se instala igual y el script sale con error.
+- [ Deploy Mac - Publicar con la pieza comun publish_release.sh ]
+
 - Auto-update (Mac): si el helper posterga el update porque sigue abierta otra ventana de Theta Explorer, la notificacion ahora dice que se postergo y pide cerrarlas; antes decia que la app "was restored". Viene de la `libs/lgaupdate` canonica, que ademas suma `relaunchWhenUpdatePostponed` (Theta no lo usa: no reabre para no sumar una ventana).
 - [ Updates - Aviso de update postergado en Mac ]
 

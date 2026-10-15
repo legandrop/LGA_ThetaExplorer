@@ -78,8 +78,17 @@ y desinstalacion reales se comprueban con el usuario mirando.
 La app y su ejecutable se llaman `LGA ThetaExplorer`; el nombre corto del menu sigue
 siendo `ThetaExplorer`. Los archivos ZIP y DMG usan `LGA_ThetaExplorer_Mac_v<version>`.
 
-`./deploy.sh` hace todo en un solo paso. Con terminal pregunta al principio que armar y si
-publicar, y despues corre sin frenar hasta la confirmacion final de la publicacion.
+`./deploy.sh` hace todo en un solo paso. Con terminal pregunta al principio si publicar (por
+defecto **no**) y, si no, que armar; despues corre sin frenar. Publicar implica el ZIP y el DMG.
+
+La publicacion la hace `tools/macos/publish_release.sh`, copia IDENTICA de la pieza canonica de
+`../LGA_Base_QT_C_Py` (no se modifica aca: el cambio va alla y se vuelve a copiar). Lo propio de
+esta app esta en `tools/macos/release.conf`, solo variables: el repo, la version de
+`CMakeLists.txt`, el chequeo `./bump_version.sh --check`, el titulo `LGA ThetaExplorer v<version>`
+y las notas del release (instalacion y `xattr`). Sin What's new ni `SHA256SUMS` de macOS: el
+`SHA256SUMS` del release lo sube Windows con su linea sola y sin `--clobber`, asi que si la Mac lo
+creara primero, la publicacion de Windows fallaria. Contrato de la pieza:
+`../LGA_Base_QT_C_Py/docs/Doc_Deploy_macOS.md` §5.
 
 ## Compilacion local y acceso a la camara
 
@@ -103,11 +112,13 @@ al usuario, no el script. La firma local no instala la app ni publica un release
 1. **Version**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Si el bump no esta
    hecho y commiteado (`./bump_version.sh --check`), pregunta igual si publicar: el "si" pasa a
    `./bump_version.sh`, que despues ofrece este deploy con `--publish`, y el "no" arma lo local
-   con esa version. Con `--publish` corta, y con `--dry-run` solo avisa.
-2. **Si se va a publicar, chequea antes de compilar**: `gh` autenticado, repo publico, git con
-   la cuenta `legandrop` (176236735), working tree limpio, branch `main` y `HEAD` igual a
-   `origin/main`. El tag apunta a `HEAD`, asi que con algo sin commitear o sin pushear el
-   release no seria lo empaquetado.
+   con esa version. Con `--publish` lo dice el preflight de la publicacion, y no se compila.
+2. **Si se va a publicar, chequea antes de compilar** (`publish_release.sh --preflight`, que junta
+   todos los problemas): `gh` con la cuenta `legandrop`, git con su email (176236735), working
+   tree limpio, el bump, repo publico, el tag y el release. Si el tag `v<version>` no existe, se
+   crea sobre `HEAD`, que tiene que estar en `main` y ser la punta de `origin/main`; si existe (lo
+   creo Windows), `HEAD` tiene que ser ese commit. El release no puede ser un borrador ni tener ya
+   los archivos de macOS (salvo `--replace`).
 3. **Build Release**: `./compilar.sh --release --no-run`, en `build-release/` (arbol
    separado: no toca la cache de desarrollo ni cierra la app de `build/`), universal
    arm64 + x86_64 y con `macdeployqt`.
@@ -123,17 +134,23 @@ al usuario, no el script. La firma local no instala la app ni publica un release
    `python3` de macOS, no instala nada) y el fondo versionado `resources/dmg/dmg_background.tiff`.
    Adentro va un `Read Me.txt` en ingles con el `sudo xattr -cr` para abrir una app sin
    notarizar. Al final monta el DMG y verifica el `.DS_Store` (fondo, alias a Applications).
-7. **Release**: muestra repo, tag, commit, assets y notas, y pide confirmacion (por defecto
-   **no**). Crea el tag anotado `v<version>`, lo pushea y crea el release en
-   `legandrop/LGA_ThetaExplorer` (el repo publico es el mismo del codigo). Si el release ya
-   existe, reemplaza sus assets. Despues dispara el refresco del manifiesto de
-   `legandrop/LGA_Updates`, que es de donde el sitio saca el boton Descargar.
+7. **Release** (`publish_release.sh --expect-head <HEAD del preflight>`): vuelve a comprobar
+   todo (Windows pudo publicar en el medio), verifica la firma del ZIP exacto que se sube, crea
+   el tag anotado `v<version>` si no existe y lo pushea, y crea el release en
+   `legandrop/LGA_ThetaExplorer` (el repo publico es el mismo del codigo) o le suma el ZIP y el
+   DMG si ya existe. Despues dispara el refresco del manifiesto de `legandrop/LGA_Updates`, que
+   es de donde el sitio saca el boton Descargar. Si la publicacion falla, la app se instala igual
+   y el script sale con error.
+8. **Instalar y abrir**: `tools/macos/install_to_applications.sh` instala en `/Applications` y
+   abre esa copia.
 
 ## Flags
 
 Sin terminal no pregunta nada y hace solo lo que digan los flags: `--zip`, `--dmg`,
-`--publish` (necesita `--yes` para publicar sin terminal), `--dry-run` (todo menos lo
-remoto), `--no-open-finder`, `--parallel N`.
+`--publish` (implica `--zip --dmg`), `--no-publish` (ni publica ni pregunta), y con `--publish`:
+`--dry-run` (todo menos escribir en GitHub y en el repo), `--replace` (re-publicar sobre un
+release que ya tiene los archivos de macOS) y `--yes`. Ademas `--no-install`, `--no-open`,
+`--no-open-finder` y `--parallel N`.
 
 ## Fondo del DMG
 
