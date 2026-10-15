@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Auto-update: se re-copia `libs/lgaupdate`. La pieza canonica agrega `progressDialogStyleSheet` (opcional, vacia por default: la barra de descarga con la hoja que pase la app, para que FileManagerS3 y PipeSync conserven la suya), el aviso "Update Postponed" ya no lleva la ruta del log en Details (es un "ahora no", no un fallo), y el `Update.log` anota la opcion elegida en el cartel y por que el chequeo automatico no lo mostro (salteada, pospuesta o cerrada con Cancel). Theta no fija hoja para la barra. Compila en Mac.
+- [ Updates - lgaupdate rev 2, ajustes ]
+
 - Auto-update: `libs/lgaupdate` se re-copia de la rev 2 de la pieza canonica de `LGA_Base_QT_C_Py`, que suma como opciones lo que tenia el updater de FileManagerS3 y PipeSync (log de updates, cierre forzado, procesos de fondo, notas por edicion). Theta no activa ninguna; cambia para todas las apps: el helper de macOS deja siempre su log en `~/Library/Logs/LGA/<productId>/Update.log` con el paso y el comando que fallo, el de Windows reintenta de verdad si no puede lanzar el instalador, y un manifiesto de formato mas nuevo pide reinstalar en el chequeo manual. Compila en Mac.
 - [ Updates - lgaupdate rev 2 ]
 
