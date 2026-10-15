@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- `deploy.sh` (macOS) termina con la app instalada en `/Applications` y abierta, también cuando publica: el `.app` de `deploy/` no se ejecuta nunca, porque es el que se empaqueta y ejecutarlo le rompe la firma que verifica el auto-update. Lo hacen `tools/macos/install_to_applications.sh` y `tools/macos/verify_bundle_signature.sh`, copias idénticas de las piezas canónicas de `LGA_Base_QT_C_Py`; la firma se verifica después de firmar, antes del ZIP y antes del DMG. Flags `--no-install` y `--no-open`; la pregunta de Finder sigue.
+- [ Deploy Mac - Instalar en Applications y abrir al terminar ]
+
 - `deploy.sh` e `instalador.bat` preguntan siempre si publicar en GitHub y, si falta el bump, ofrecen correrlo en vez de armar solo lo local sin avisar.
 - [ Deploy - Preguntar siempre si publicar ]
 

@@ -23,7 +23,7 @@ RELEASE_REPO="${LGA_RELEASE_REPO:-legandrop/LGA_ThetaExplorer}"
 BUILD_DIR="build-release"
 
 show_help() {
-    echo "Uso: $0 [--zip] [--dmg] [--publish] [--yes] [--dry-run] [--no-open-finder] [--parallel N]"
+    echo "Uso: $0 [--zip] [--dmg] [--publish] [--yes] [--dry-run] [--no-install] [--no-open] [--no-open-finder] [--parallel N]"
     echo ""
     echo "Sin flags y con terminal, pregunta por cada paso."
     echo ""
@@ -32,12 +32,15 @@ show_help() {
     echo "  --publish         Crear el tag v<version> y el release en $RELEASE_REPO con esos assets"
     echo "  --yes             No pedir la confirmacion final antes de publicar"
     echo "  --dry-run         Todo menos lo remoto: no crea tags ni sube nada"
+    echo "  --no-install      No instalar en /Applications ni abrir la app (deja solo deploy/)"
+    echo "  --no-open         Instalar en /Applications pero no abrir la app"
     echo "  --no-open-finder  No mostrar el resultado en Finder al terminar"
     echo "  --parallel N      Usar N nucleos para compilar"
 }
 
 ZIP_MODE="prompt"; DMG_MODE="prompt"; PUBLISH_MODE="prompt"
 ASSUME_YES=false; DRY_RUN=false; NO_OPEN_FINDER=false
+INSTALL_APP=true; OPEN_APP=true
 PARALLEL_CORES="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
 while [[ $# -gt 0 ]]; do
@@ -47,6 +50,8 @@ while [[ $# -gt 0 ]]; do
         --publish) PUBLISH_MODE="always"; shift ;;
         --yes|-y) ASSUME_YES=true; shift ;;
         --dry-run) DRY_RUN=true; shift ;;
+        --no-install) INSTALL_APP=false; shift ;;
+        --no-open) OPEN_APP=false; shift ;;
         --no-open-finder) NO_OPEN_FINDER=true; shift ;;
         --parallel)
             [[ $# -ge 2 ]] || { echo "ERROR: --parallel requiere un valor."; exit 1; }
@@ -221,6 +226,7 @@ else
     echo "Firmando ad-hoc (no hay identidad '$CODESIGN_IDENTITY' en el llavero)..."
     codesign --force --deep --sign - "$APP_PATH"
 fi
+bash "./tools/macos/verify_bundle_signature.sh" "$APP_PATH"
 echo "Bundle listo: $APP_PATH"
 
 ASSETS=()
@@ -228,6 +234,7 @@ if [[ "$CREATE_ZIP" == "true" ]]; then
     # ditto y NO zip: `zip -r` resuelve los symlinks de los frameworks de Qt, duplica cada
     # uno y rompe la firma.
     rm -f "deploy/${ZIP_NAME}"
+    bash "./tools/macos/verify_bundle_signature.sh" "$APP_PATH"
     (cd deploy && ditto -c -k --sequesterRsrc --keepParent "${APP_NAME}.app" "${ZIP_NAME}")
     VERIFY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${ARTIFACT_NAME}_verify_XXXXXX")"
     ditto -x -k "deploy/${ZIP_NAME}" "$VERIFY_DIR"
@@ -321,6 +328,14 @@ if [[ "$PUBLISH" == "true" ]]; then
         rm -f "$NOTES_FILE"
         echo "No se publico nada. Los archivos quedan en deploy/."
     fi
+fi
+
+# El final de todo deploy: instalar en /Applications y abrir la copia INSTALADA. El .app de
+# deploy/ no se ejecuta nunca: es el que se empaqueta, y ejecutarlo le rompe la firma.
+if [[ "$INSTALL_APP" == "true" ]]; then
+    INSTALL_ARGS=()
+    [[ "$OPEN_APP" == "false" ]] && INSTALL_ARGS+=(--no-open)
+    bash "./tools/macos/install_to_applications.sh" "$APP_PATH" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}
 fi
 
 if [[ "$NO_OPEN_FINDER" == "false" && "$INTERACTIVE" == "true" ]]; then
