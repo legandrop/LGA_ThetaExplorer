@@ -92,7 +92,7 @@ if [ "$CHECK" = "true" ]; then
     fi
     # Un bump hecho pero sin commitear no sirve para publicar: el tag apuntaria a otro estado.
     if ! git -C "$ROOT" diff --quiet HEAD -- CMakeLists.txt; then
-        echo "[bump_version] ERROR: el bump a $CL_VERSION esta hecho pero sin commitear: correr ./bump_version.sh y commitearlo."
+        echo "[bump_version] ERROR: el bump a $CL_VERSION esta hecho pero sin commitear: commitearlo, o descartarlo con git checkout -- CMakeLists.txt y volver a correr ./bump_version.sh."
         exit 1
     fi
     echo "[bump_version] OK: todo en $CL_VERSION."

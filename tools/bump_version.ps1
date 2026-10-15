@@ -101,7 +101,7 @@ try {
         # Un bump hecho pero sin commitear no sirve para publicar: el tag apuntaria a otro estado.
         $null = Invoke-Git diff --quiet HEAD -- CMakeLists.txt
         if ($gitExit -ne 0) {
-            Write-Host "[bump_version] ERROR: el bump a $changelogVersion esta hecho pero sin commitear: correr bump_version.bat y commitearlo."
+            Write-Host "[bump_version] ERROR: el bump a $changelogVersion esta hecho pero sin commitear: commitearlo, o descartarlo con git checkout -- CMakeLists.txt y volver a correr bump_version.bat."
             exit 1
         }
         Write-Host "[bump_version] OK: todo en $changelogVersion."

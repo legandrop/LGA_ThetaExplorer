@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Cuando el bump de version quedo hecho pero sin commitear, `bump_version --check` explica que hay que commitearlo o descartarlo con `git checkout` antes de volver a correr el bump.
+- [ Versionado - Mensaje del check con bump sin commitear ]
+
 - `instalador.bat` suma el instalador y `SHA256SUMS` al release que ya creo la Mac para esa version, desde el mismo commit, en vez de rechazarlo; sigue sin reemplazar un instalador de Windows ya publicado.
 - [ Windows - Instalador suma su setup al release de la Mac ]
 
