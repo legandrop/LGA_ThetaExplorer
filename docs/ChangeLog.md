@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Auto-update: `libs/lgaupdate` se re-copia de la rev 2 de la pieza canonica de `LGA_Base_QT_C_Py`, que suma como opciones lo que tenia el updater de FileManagerS3 y PipeSync (log de updates, cierre forzado, procesos de fondo, notas por edicion). Theta no activa ninguna; cambia para todas las apps: el helper de macOS deja siempre su log en `~/Library/Logs/LGA/<productId>/Update.log` con el paso y el comando que fallo, el de Windows reintenta de verdad si no puede lanzar el instalador, y un manifiesto de formato mas nuevo pide reinstalar en el chequeo manual. Compila en Mac.
+- [ Updates - lgaupdate rev 2 ]
+
 - Mac - Lo que faltaba decir de la publicacion con `publish_release.sh`: `--dry-run` ya no solo avisa, corta igual que una publicacion real (arbol limpio, el bump hecho y, si el tag es nuevo, HEAD en la punta de `origin/main`); se quita el override `LGA_RELEASE_REPO`, porque con otro repo la pieza lo trata como repo de release aparte; y `--yes` queda aceptado pero sin efecto en esta app (solo saltea el control del What's new, que Theta no usa), como lo dicen ahora la ayuda y `doc/deploy.md`.
 - [ Deploy Mac - Aclarar --dry-run, --yes y LGA_RELEASE_REPO ]
 
