@@ -1,8 +1,31 @@
 # Deploy y release
 
+## Version
+
+`CMakeLists.txt` (`project(ThetaExplorer VERSION x.yyy ...)`) guarda la ultima version
+PUBLICADA; el primer `vX.YYY:` de `docs/ChangeLog.md` es la version EN DESARROLLO, donde se
+juntan las entradas hasta el proximo release. El numero sube solo con el bump, que corre Lega al
+publicar y vale para Windows y macOS (los dos publican en el mismo release `v<version>`):
+
+```bash
+./bump_version.sh          # macOS; en Windows: bump_version.bat
+```
+
+Verifica que se este en `main`, al dia con origin, con el changelog y `CMakeLists.txt`
+commiteados y con la identidad de `legandrop`; sube `CMakeLists.txt` a la version del changelog
+(un salto mayor que `+0.001` se confirma); commitea solo ese archivo y pushea (lista antes los
+commits locales que salen en el mismo push); y ofrece publicar con `./deploy.sh --zip --dmg
+--publish` o `instalador.bat`. `--check` no escribe: sale 0 si `CMakeLists.txt` y el changelog
+coinciden y el bump esta commiteado. `deploy.sh` e `instalador.bat` lo usan antes de publicar:
+sin bump arman lo local con la version publicada y no ofrecen publicar (con `--publish`, cortan).
+El release es uno solo y no importa que plataforma publique primero: la segunda le suma sus
+archivos. Las dos tienen que publicar desde el commit del bump, porque el tag `v<version>` apunta
+ahi y ninguna lo mueve.
+
 ## Windows
 
-`instalador.bat` conserva la version actual de `CMakeLists.txt`; no la incrementa.
+`instalador.bat` conserva la version actual de `CMakeLists.txt`; no la incrementa (eso es el
+bump).
 Requiere el toolchain de `compilar.bat` e Inno Setup 6 (se puede indicar su
 `ISCC.exe` con `THETA_ISCC`). No instala herramientas globales automaticamente.
 
@@ -28,14 +51,16 @@ historial siguen en AppData. Al desinstalar se retira la cache propia y se conse
 las fotos descargadas. El cierre por ruta usa el script canonico del Base y alcanza
 tambien al auxiliar WPD, que comparte el ejecutable de la app.
 
-Para publicar despues de commitear y pushear:
+Para publicar despues del bump (que ya commitea y pushea; `bump_version.bat` lo ofrece al
+terminar):
 
 ```bat
 instalador.bat
 ```
 
 Requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
-repo publico correcto. Rechaza un release existente o un tag de otro commit.
+repo publico correcto. Rechaza un tag de otro commit. Si el release ya existe (lo creo la Mac),
+le suma el setup y `SHA256SUMS`; si ya tiene el setup de Windows, no lo reemplaza.
 Muestra repo, version, commit y archivos; solo crea el release si se responde `Y`
 a la pregunta final. Sube el setup y `SHA256SUMS` al mismo repo publico y no
 modifica permisos ni el manifiesto de LGA Updates. Si GitHub no esta listo,
@@ -74,8 +99,9 @@ al usuario, no el script. La firma local no instala la app ni publica un release
 
 ## Que hace
 
-1. **Version**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`) y exige que la primera
-   entrada de `docs/ChangeLog.md` diga lo mismo.
+1. **Version**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Si el bump no esta
+   hecho y commiteado (`./bump_version.sh --check`), arma lo local con esa version y no ofrece
+   publicar; con `--publish` corta, y con `--dry-run` solo avisa.
 2. **Si se va a publicar, chequea antes de compilar**: `gh` autenticado, repo publico, git con
    la cuenta `legandrop` (176236735), working tree limpio, branch `main` y `HEAD` igual a
    `origin/main`. El tag apunta a `HEAD`, asi que con algo sin commitear o sin pushear el

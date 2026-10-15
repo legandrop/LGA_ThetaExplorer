@@ -54,7 +54,9 @@ En Windows, cuando el paquete esté publicado, ejecutá
 Para generar el setup localmente, usá `instalador_local.bat --no-run` con Inno Setup 6
 instalado. El setup y `SHA256SUMS` quedan en `deploy/windows-v<version>/`.
 `instalador.bat` sin flags ofrece instalar, revelar en Explorer y publicar en GitHub,
-con preguntas Y/N independientes. `--no-run` omite las preguntas y la publicación;
+con preguntas Y/N independientes; para publicar primero hace falta el bump de versión
+(`bump_version.bat` en Windows, `./bump_version.sh` en macOS), que sube la versión para las dos
+plataformas y ofrece publicar. `--no-run` omite las preguntas y la publicación;
 `instalador_local.bat` omite GitHub.
 Detalle: [Deploy y release](doc/deploy.md).
 

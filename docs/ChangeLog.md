@@ -1,5 +1,12 @@
 # ChangeLog — LGA Theta Explorer
 
+v1.027:
+- `instalador.bat` suma el instalador y `SHA256SUMS` al release que ya creo la Mac para esa version, desde el mismo commit, en vez de rechazarlo; sigue sin reemplazar un instalador de Windows ya publicado.
+- [ Windows - Instalador suma su setup al release de la Mac ]
+
+- La version pasa a subir solo al publicar: el changelog junta las entradas bajo la version en desarrollo, y `bump_version.sh` / `bump_version.bat`, uno solo para Windows y macOS, la lleva a `CMakeLists.txt`, la commitea y ofrece publicar; `deploy.sh` e `instalador.bat` no publican sin ese bump.
+- [ Versionado - Bump manual al publicar ]
+
 v1.026:
 - Las preguntas Y/N del instalador se muestran completas antes de esperar la respuesta, usando choice directamente en la consola como los otros instaladores. Se elimina la captura de salida que retenia el texto hasta pulsar una tecla y se conserva el flujo de instalar, revelar en Explorer y publicar.
 - [ Windows - Preguntas del instalador visibles ]

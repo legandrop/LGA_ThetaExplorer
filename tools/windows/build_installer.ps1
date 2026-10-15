@@ -46,7 +46,15 @@ function Publication-Preflight {
     }
     $releases = & gh api "repos/$repo/releases" --paginate --jq '.[].tag_name'
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron comprobar los releases' }
-    if ($releases -contains "v$version") { throw 'El release ya existe: no se reemplazan sus archivos' }
+    # El release es uno solo para Windows y macOS: si la Mac ya lo creo (con el tag en este mismo
+    # commit, chequeado arriba), Windows le suma su instalador. Lo que no se hace es reemplazar un
+    # instalador de Windows ya publicado.
+    $script:releaseExists = $releases -contains "v$version"
+    if ($script:releaseExists) {
+        $assets = & gh release view "v$version" --repo $repo --json assets --jq '.assets[].name'
+        if ($LASTEXITCODE -ne 0) { throw 'No se pudieron leer los archivos del release existente' }
+        if ($assets -contains "LGA_ThetaExplorer_Setup_v$version.exe") { throw 'El release ya tiene el instalador de Windows: no se reemplaza' }
+    }
     return $commit
 }
 
@@ -58,10 +66,19 @@ try {
     $match = [regex]::Match([IO.File]::ReadAllText((Join-Path $root 'CMakeLists.txt')), 'project\(ThetaExplorer VERSION (\d+\.\d{3})\b')
     if (-not $match.Success) { throw 'No se pudo leer la version de CMake' }
     $version = $match.Groups[1].Value
-    $changelog = [IO.File]::ReadAllText((Join-Path $root 'docs\ChangeLog.md'))
-    if ([regex]::Match($changelog, '(?m)^v(\d+\.\d{3}):').Groups[1].Value -ne $version) { throw 'CMake y ChangeLog no coinciden' }
+    # CMakeLists.txt guarda la ultima version PUBLICADA y el ChangeLog la EN DESARROLLO: el numero
+    # sube solo con bump_version.bat, que corre Lega al publicar. Sin el bump se arma el instalador
+    # local con la version publicada y no se ofrece publicar.
     $interactive = -not $NoRun -and -not [Console]::IsInputRedirected
     $offerPublication = -not $LocalOnly -and -not $StageOnly -and $interactive
+    if ($offerPublication -or $Publish) {
+        & (Join-Path $root 'tools\bump_version.ps1') -Check
+        if ($LASTEXITCODE -ne 0) {
+            if ($Publish) { throw 'Falta el bump de version: correr bump_version.bat' }
+            Write-Warning "Falta el bump de version (bump_version.bat): se genera el instalador local de v$version, sin publicar."
+            $offerPublication = $false
+        }
+    }
     if ($offerPublication) {
         try { $commit = Publication-Preflight }
         catch {
@@ -190,7 +207,9 @@ end;
         Write-Host "Release publico: $repo / v$version / $commit"
         Write-Host "Archivos: $setup y $hashFile"
         Confirm-Choice "Desea subir el instalador como release v$version a GitHub?"
-        if ($LASTEXITCODE -eq 1) {
+        if ($LASTEXITCODE -eq 1 -and $script:releaseExists) {
+            Run-Checked 'gh' @('release','upload',"v$version",$setup,$hashFile,'--repo',$repo)
+        } elseif ($LASTEXITCODE -eq 1) {
             $notes = Join-Path $output 'release-notes.md'
             [IO.File]::WriteAllText($notes, 'First Windows release. Browse a RICOH THETA over USB, preview photos, group HDR brackets and download JPG/DNG files. Windows 10/11 x64; no Ricoh software required.', $utf8)
             Run-Checked 'gh' @('release','create',"v$version",$setup,$hashFile,'--repo',$repo,'--target',$commit,

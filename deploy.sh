@@ -85,16 +85,27 @@ decide() {
     return 1
 }
 
-# ---- Version: una sola fuente (CMakeLists.txt), y el ChangeLog tiene que coincidir ----
+# ---- Version: CMakeLists.txt guarda la ultima PUBLICADA y el ChangeLog la EN DESARROLLO ----
+# El numero sube solo con ./bump_version.sh, que corre Lega al decidir publicar. Sin el bump, el
+# deploy local se arma con la version publicada y no se ofrece publicar.
 APP_VERSION="$(sed -n 's/^[[:space:]]*project(.*VERSION[[:space:]]\{1,\}\([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)"
 if ! [[ "$APP_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
     echo "ERROR: no se pudo leer la version de CMakeLists.txt (project(... VERSION ...))."
     exit 1
 fi
-CHANGELOG_VERSION="$(sed -n 's/^v\([0-9][0-9.]*\):.*/\1/p' docs/ChangeLog.md | head -1)"
-if [[ "$CHANGELOG_VERSION" != "$APP_VERSION" ]]; then
-    echo "ERROR: CMakeLists.txt dice v$APP_VERSION pero la ultima entrada del ChangeLog es v${CHANGELOG_VERSION:-?}."
-    exit 1
+if ! bumpout="$(sh ./bump_version.sh --check 2>&1)"; then
+    if [[ "$PUBLISH_MODE" == "always" && "$DRY_RUN" != "true" ]]; then
+        echo "ERROR: se pidio --publish pero falta el bump de version (correr ./bump_version.sh, que commitea y pushea):"
+        printf '%s\n' "$bumpout" | sed 's/^/       /'
+        exit 1
+    fi
+    if [[ "$PUBLISH_MODE" == "always" && "$DRY_RUN" == "true" ]]; then
+        echo "AVISO (dry-run): falta el bump de version (./bump_version.sh); el ensayo sigue."
+    else
+        echo "AVISO: falta el bump de version (./bump_version.sh): deploy local de v$APP_VERSION, sin publicar."
+        printf '%s\n' "$bumpout" | sed 's/^/       /'
+        PUBLISH_MODE="never"
+    fi
 fi
 
 TAG="v${APP_VERSION}"
@@ -109,7 +120,9 @@ echo ""
 CREATE_ZIP=false; CREATE_DMG=false; PUBLISH=false
 decide "$ZIP_MODE" "Crear el ZIP (actualizacion)?" "Y" && CREATE_ZIP=true
 decide "$DMG_MODE" "Crear el DMG (primera instalacion)?" "Y" && CREATE_DMG=true
-if [[ "$CREATE_ZIP" == "true" || "$CREATE_DMG" == "true" ]]; then
+if [[ "$PUBLISH_MODE" == "never" ]]; then
+    :
+elif [[ "$CREATE_ZIP" == "true" || "$CREATE_DMG" == "true" ]]; then
     decide "$PUBLISH_MODE" "Publicar el release $TAG en GitHub ($RELEASE_REPO) con esos archivos?" "N" && PUBLISH=true
 elif [[ "$PUBLISH_MODE" == "always" ]]; then
     echo "ERROR: --publish necesita al menos --zip o --dmg."
