@@ -17,8 +17,9 @@ commiteados y con la identidad de `legandrop`; sube `CMakeLists.txt` a la versio
 commits locales que salen en el mismo push); y ofrece publicar con `./deploy.sh --zip --dmg
 --publish` o `instalador.bat`. `--check` no escribe: sale 0 si `CMakeLists.txt` y el changelog
 coinciden y el bump esta commiteado. `deploy.sh` e `instalador.bat` lo usan antes de publicar y
-con terminal preguntan siempre si publicar: sin bump, el "si" corre el bump (que despues ofrece
-publicar) y el "no" arma lo local con la version publicada; con `--publish`, sin bump cortan.
+con terminal preguntan siempre si publicar; con `--publish`, sin bump cortan. En la Mac la
+pregunta la hace `publish_release.sh --decide` (ver el paso 1 abajo); `instalador.bat` sigue con
+el flujo viejo: sin bump, el "si" corre el bump, que despues ofrece publicar.
 El release es uno solo y no importa que plataforma publique primero: la segunda le suma sus
 archivos. Las dos tienen que publicar desde el commit del bump, porque el tag `v<version>` apunta
 ahi y ninguna lo mueve.
@@ -109,10 +110,14 @@ al usuario, no el script. La firma local no instala la app ni publica un release
 
 ## Que hace
 
-1. **Version**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Si el bump no esta
-   hecho y commiteado (`./bump_version.sh --check`), pregunta igual si publicar: el "si" pasa a
-   `./bump_version.sh`, que despues ofrece este deploy con `--publish`, y el "no" arma lo local
-   con esa version. Con `--publish` lo dice el preflight de la publicacion, y no se compila.
+1. **Version y decision**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Sin flags y
+   con terminal, `publish_release.sh --decide` mira el release `v<version>` antes de compilar y
+   pregunta con una tecla, sin Enter: `1` publicar como release nuevo o sumar macOS al que creo
+   Windows; si la version ya tiene los archivos de macOS, o falta el bump, y el changelog va
+   adelante, `1` es el bump (`BUMP_CMD` de `tools/macos/release.conf`: sube `CMakeLists.txt`,
+   commitea y pushea) y publicar esa version; `2` build local; `3` cancelar sin compilar. Si lo
+   elegido no pasa el preflight, ofrece seguir local. Con `--publish` lo dice el preflight de la
+   publicacion, y no se compila.
 2. **Si se va a publicar, chequea antes de compilar** (`publish_release.sh --preflight`, que junta
    todos los problemas): `gh` con la cuenta `legandrop`, git con su email (176236735), working
    tree limpio, el bump, repo publico, el tag y el release. Si el tag `v<version>` no existe, se

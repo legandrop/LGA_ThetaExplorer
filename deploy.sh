@@ -26,7 +26,9 @@ show_help() {
     echo "Uso: $0 [--zip] [--dmg] [--publish [--dry-run] [--replace] [--yes] | --no-publish]"
     echo "         [--no-install] [--no-open] [--no-open-finder] [--parallel N]"
     echo ""
-    echo "Sin flags y con terminal, pregunta por cada paso."
+    echo "Sin flags y con terminal, mira GitHub y pregunta ANTES de compilar: publicar (o sumar los"
+    echo "archivos de macOS al release), el bump si esa version ya esta publicada o falta, build local"
+    echo "o cancelar; y si no se publica, por el ZIP y el DMG. Todo con una tecla, sin Enter."
     echo ""
     echo "  --zip             Crear deploy/${ARTIFACT_NAME}_Mac_v<version>.zip (actualizacion)"
     echo "  --dmg             Crear deploy/${ARTIFACT_NAME}_Mac_v<version>.dmg (primera instalacion)"
@@ -85,44 +87,74 @@ fi
 INTERACTIVE=false
 [[ -t 0 ]] && INTERACTIVE=true
 
-ask_yes_no() {
-    # Respuesta por defecto: la que se pasa como segundo argumento (Y o N).
-    local prompt="$1" def="$2" answer hint="[y/N]"
-    [[ "$def" == "Y" ]] && hint="[Y/n]"
-    read -r -p "$prompt $hint " answer
-    answer="${answer:-$def}"
-    [[ "$answer" =~ ^[Yy]$ ]]
+# Toda pregunta se contesta con UNA tecla, sin Enter (regla LGA, 2026-10-17): una tecla que no es
+# Y/N no hace nada, y no hay respuesta por defecto (Enter tampoco hace nada). Ctrl+C sigue cortando.
+ask_yes_no() {  # <pregunta>; exit 0 = Y
+    local k
+    printf '%s [Y/N] ' "$1"
+    while true; do
+        IFS= read -rsn1 k || return 1
+        case "$k" in
+            [Yy]) echo "Y"; return 0 ;;
+            [Nn]) echo "N"; return 1 ;;
+        esac
+    done
 }
 
 decide() {
     # always -> si; prompt con terminal -> pregunta; prompt sin terminal -> no.
-    local mode="$1" prompt="$2" def="$3"
+    local mode="$1" prompt="$2"
     if [[ "$mode" == "always" ]]; then return 0; fi
-    if [[ "$INTERACTIVE" == "true" ]]; then ask_yes_no "$prompt" "$def"; return $?; fi
+    if [[ "$INTERACTIVE" == "true" ]]; then ask_yes_no "$prompt"; return $?; fi
     return 1
 }
 
 # ---- Version: CMakeLists.txt guarda la ultima PUBLICADA y el ChangeLog la EN DESARROLLO ----
-# El numero sube solo con ./bump_version.sh, que corre Lega al decidir publicar. Sin el bump, el
-# deploy local se arma con la version publicada y no se ofrece publicar. Con --publish, el
-# preflight de la publicacion es el que lo dice.
-APP_VERSION="$(sed -n 's/^[[:space:]]*project(.*VERSION[[:space:]]\{1,\}\([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)"
-if ! [[ "$APP_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
-    echo "ERROR: no se pudo leer la version de CMakeLists.txt (project(... VERSION ...))."
-    exit 1
-fi
-if [[ "$PUBLISH_MODE" == "prompt" ]] && ! bumpout="$(sh ./bump_version.sh --check 2>&1)"; then
-    echo "Falta el bump de version para publicar:"
-    printf '%s\n' "$bumpout" | sed 's/^/       /'
-    # La pregunta por la publicacion se hace igual: publicar arranca por el bump, que sube
-    # el numero, commitea, pushea y despues ofrece este mismo deploy con --publish.
-    if [[ "$INTERACTIVE" == "true" ]] \
-        && ask_yes_no "Publicar en GitHub? Primero corre ./bump_version.sh, que despues ofrece publicar" "N"; then
-        exec sh ./bump_version.sh
+# El numero sube solo con ./bump_version.sh, que se corre al decidir publicar (lo ofrece la
+# pregunta de abajo). Sin el bump, el deploy local se arma con la version publicada.
+read_app_version() {
+    APP_VERSION="$(sed -n 's/^[[:space:]]*project(.*VERSION[[:space:]]\{1,\}\([0-9][0-9.]*\).*/\1/p' CMakeLists.txt | head -1)"
+    if ! [[ "$APP_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+        echo "ERROR: no se pudo leer la version de CMakeLists.txt (project(... VERSION ...))."
+        exit 1
     fi
-    echo "Deploy local de v$APP_VERSION, sin publicar."
-    PUBLISH_MODE="never"
+}
+read_app_version
+
+# ---- Publicar: se decide ACA, antes de compilar, con tools/macos/publish_release.sh ----
+# La pieza canonica de LGA_Base_QT_C_Py (copia IDENTICA; lo propio de esta app, titulo, notas y
+# BUMP_CMD incluidos, esta en tools/macos/release.conf). Contrato:
+# ../LGA_Base_QT_C_Py/docs/Doc_Deploy_macOS.md §5.
+#   - sin --publish ni --no-publish y con terminal, `--decide` mira el release en GitHub y pregunta
+#     con UNA tecla: publicar o sumar los archivos de macOS al release que ya existe, el bump si esa
+#     version ya esta publicada o falta, build local o cancelar. Si vuelve con "publicar", el
+#     preflight ya paso, con la version que haya dejado el bump.
+#   - con --publish, `--preflight` directo (gh y la identidad, arbol limpio, el bump, el tag, el
+#     release, repo publico): si algo impide publicar, corta sin gastar el build.
+#   - con el ZIP y el DMG armados, `--expect-head` vuelve a comprobar todo (Windows pudo publicar
+#     en el medio) y publica.
+PUBLISH=false
+if [[ "$PUBLISH_MODE" == "always" ]]; then
+    PUBLISH=true
+    bash ./tools/macos/publish_release.sh --preflight ${PUBLISH_ARGS[@]+"${PUBLISH_ARGS[@]}"}
+elif [[ "$PUBLISH_MODE" == "prompt" && "$INTERACTIVE" == "true" && "$ZIP_MODE" == "prompt" && "$DMG_MODE" == "prompt" ]]; then
+    DECIDE_RC=0
+    bash ./tools/macos/publish_release.sh --decide || DECIDE_RC=$?
+    case "$DECIDE_RC" in
+        0)
+            PUBLISH=true
+            read_app_version   # el bump pudo cambiarla
+            ;;
+        10) ;;
+        20)
+            echo "Cancelado. No se compilo nada."
+            exit 1
+            ;;
+        *) echo "AVISO: no se pudo decidir la publicacion (ver arriba): se sigue con el build local." ;;
+    esac
 fi
+PUBLISH_HEAD=""
+[[ "$PUBLISH" == "true" ]] && PUBLISH_HEAD="$(git rev-parse HEAD)"
 
 TAG="v${APP_VERSION}"
 ZIP_NAME="${ARTIFACT_NAME}_Mac_v${APP_VERSION}.zip"
@@ -132,27 +164,13 @@ APP_PATH="deploy/${APP_NAME}.app"
 echo "Deploy de $APP_NAME v$APP_VERSION"
 echo ""
 
-# ---- Preguntas, todas juntas al principio. Publicar implica el ZIP y el DMG ----
-CREATE_ZIP=false; CREATE_DMG=false; PUBLISH=false
-decide "$PUBLISH_MODE" "Publicar el release $TAG en GitHub (el ZIP y el DMG)?" "N" && PUBLISH=true
+# ---- El resto de las preguntas, al principio. Publicar implica el ZIP y el DMG ----
+CREATE_ZIP=false; CREATE_DMG=false
 if [[ "$PUBLISH" == "true" ]]; then
     CREATE_ZIP=true; CREATE_DMG=true
 else
-    decide "$ZIP_MODE" "Crear el ZIP (actualizacion)?" "Y" && CREATE_ZIP=true
-    decide "$DMG_MODE" "Crear el DMG (primera instalacion)?" "Y" && CREATE_DMG=true
-fi
-
-# ---- Publicar: tools/macos/publish_release.sh ----
-# La pieza canonica de LGA_Base_QT_C_Py (copia IDENTICA; lo propio de esta app, titulo y notas
-# incluidos, esta en tools/macos/release.conf). Se llama dos veces: --preflight ACA, antes de
-# compilar (gh y la identidad, arbol limpio, el bump, el tag, el release y que el repo sea publico;
-# junta todos los problemas y corta sin gastar el build), y --expect-head con el ZIP y el DMG ya
-# armados (vuelve a comprobar todo, porque Windows pudo publicar en el medio, y publica). Contrato:
-# ../LGA_Base_QT_C_Py/docs/Doc_Deploy_macOS.md §5.
-PUBLISH_HEAD=""
-if [[ "$PUBLISH" == "true" ]]; then
-    PUBLISH_HEAD="$(git rev-parse HEAD)"
-    bash ./tools/macos/publish_release.sh --preflight ${PUBLISH_ARGS[@]+"${PUBLISH_ARGS[@]}"}
+    decide "$ZIP_MODE" "Crear el ZIP (actualizacion)?" && CREATE_ZIP=true
+    decide "$DMG_MODE" "Crear el DMG (primera instalacion)?" && CREATE_DMG=true
 fi
 
 # ---- Build Release ----

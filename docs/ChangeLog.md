@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - `deploy.sh` ya no pregunta "¿publicar?" a ciegas ni pasa el control a `bump_version.sh` cuando falta el bump: llama a `tools/macos/publish_release.sh --decide` (pieza canonica de la Base v0.158, re-copiada), que mira el release en GitHub antes de compilar y pregunta con una tecla, sin Enter: publicar o sumar macOS al release; si la version ya esta publicada para macOS o falta el bump, el bump (`BUMP_CMD` en `release.conf`, con commit y push) y publicar esa; build local; o cancelar. Era el caso de la v1.026, que ya tiene los archivos de macOS: antes el deploy se cortaba entero. Las preguntas Y/N del script pasan a una tecla. Probado en la Mac con un clon descartable; falta `instalador.bat`.
+- [ Deploy Mac - Menu de publicacion de una tecla antes de compilar ]
+
 - Auto-update: se re-copia `libs/lgaupdate`. La pieza canonica agrega `progressDialogStyleSheet` (opcional, vacia por default: la barra de descarga con la hoja que pase la app, para que FileManagerS3 y PipeSync conserven la suya), el aviso "Update Postponed" ya no lleva la ruta del log en Details (es un "ahora no", no un fallo), y el `Update.log` anota la opcion elegida en el cartel y por que el chequeo automatico no lo mostro (salteada, pospuesta o cerrada con Cancel). Theta no fija hoja para la barra. Compila en Mac.
 - [ Updates - lgaupdate rev 2, ajustes ]
 
