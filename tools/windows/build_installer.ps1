@@ -302,10 +302,16 @@ end;
         if ($script:releaseExists) {
             Run-Checked 'gh' @('release','upload',"v$version",$setup,$hashFile,'--repo',$repo)
         } else {
+            # Titulo y notas de tools/macos/release.conf, los mismos que usa publish_release.sh en la
+            # Mac: el release es uno solo y no cambia segun que plataforma lo cree.
+            $conf = [IO.File]::ReadAllText((Join-Path $root 'tools\macos\release.conf'))
+            $title = [regex]::Match($conf, '(?m)^RELEASE_TITLE="([^"]*)"').Groups[1].Value
+            $body = [regex]::Match($conf, "(?ms)^RELEASE_NOTES='((?:[^']|'`"'`"')*)'").Groups[1].Value
+            if (-not $title -or -not $body) { throw 'No se pudieron leer RELEASE_TITLE y RELEASE_NOTES de tools/macos/release.conf' }
             $notes = Join-Path $output 'release-notes.md'
-            [IO.File]::WriteAllText($notes, 'First Windows release. Browse a RICOH THETA over USB, preview photos, group HDR brackets and download JPG/DNG files. Windows 10/11 x64; no Ricoh software required.', $utf8)
+            [IO.File]::WriteAllText($notes, $body.Replace("'`"'`"'", "'").Replace('{v}', $version), $utf8)
             Run-Checked 'gh' @('release','create',"v$version",$setup,$hashFile,'--repo',$repo,'--target',$commit,
-                '--title',"Theta Explorer v$version",'--notes-file',$notes,'--latest')
+                '--title',$title.Replace('{v}', $version),'--notes-file',$notes,'--latest')
         }
     }
     exit 0

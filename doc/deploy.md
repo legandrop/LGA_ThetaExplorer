@@ -67,7 +67,9 @@ tambien al auxiliar WPD, que comparte el ejecutable de la app.
 
 Publicar requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
 repo publico correcto. Rechaza un tag de otro commit. Si el release ya existe (lo creo la Mac),
-le suma el setup y `SHA256SUMS`; si ya tiene el setup de Windows, no lo reemplaza.
+le suma el setup y `SHA256SUMS`; si ya tiene el setup de Windows, no lo reemplaza. Si lo crea
+Windows, usa el titulo y las notas de `tools/macos/release.conf` (`RELEASE_TITLE`,
+`RELEASE_NOTES`), los mismos que la Mac: el release no cambia segun quien publique primero.
 Elegido `1`, publica al terminar sin volver a preguntar (antes repite la verificacion y exige
 el mismo commit). Sube el setup y `SHA256SUMS` al mismo repo publico y no
 modifica permisos ni el manifiesto de LGA Updates. `instalador.bat --publish` (lo que corre

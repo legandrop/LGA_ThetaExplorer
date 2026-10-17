@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Windows - Cuando `instalador.bat` crea el release (la Mac todavia no publico esa version), el titulo y las notas ya no son el texto fijo "First Windows release..." de `build_installer.ps1`, que dejo de ser cierto: salen de `RELEASE_TITLE` y `RELEASE_NOTES` de `tools/macos/release.conf`, con `{v}` reemplazado, los mismos que usa `publish_release.sh` en la Mac. Asi el release queda igual sin importar que plataforma publique primero. Verificado: el texto que arma Windows es identico byte a byte al que arma bash al leer el mismo `release.conf`.
+- [ Windows - Notas del release desde release.conf ]
+
 - Windows - `instalador.bat` decide la publicacion antes de compilar, con el mismo criterio que `publish_release.sh --decide`: mira el release en GitHub y pregunta con una tecla, sin Enter, publicar (release nuevo, sumar el setup al release de la Mac, o el bump a la version del changelog con commit + push y publicarla), instalador local o cancelar. Si algo impide publicar (arbol sucio, rama, gh, release ya con el setup de Windows y sin version nueva) lo dice y ofrece solo local o cancelar. Antes, sin el bump el "si" pasaba el control a `bump_version.bat` y cortaba, y la publicacion se confirmaba otra vez con Y/N al final; esa pregunta se quita. `--publish` ya no pregunta: publica si el estado lo permite.
 - [ Windows - Menu de publicacion de una tecla antes de compilar ]
 
