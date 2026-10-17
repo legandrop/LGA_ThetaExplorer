@@ -92,7 +92,8 @@ La publicacion la hace `tools/macos/publish_release.sh`, copia IDENTICA de la pi
 `../LGA_Base_QT_C_Py` (no se modifica aca: el cambio va alla y se vuelve a copiar). Lo propio de
 esta app esta en `tools/macos/release.conf`, solo variables: el repo, la version de
 `CMakeLists.txt`, el chequeo `./bump_version.sh --check`, el titulo `LGA ThetaExplorer v<version>`
-y las notas del release (instalacion y `xattr`). Sin What's new ni `SHA256SUMS` de macOS: el
+y las notas del release (instalacion en macOS con `xattr` y en Windows con el setup; las usan las
+dos plataformas, asi que nombran las dos). Sin What's new ni `SHA256SUMS` de macOS: el
 `SHA256SUMS` del release lo sube Windows con su linea sola y sin `--clobber`, asi que si la Mac lo
 creara primero, la publicacion de Windows fallaria. Contrato de la pieza:
 `../LGA_Base_QT_C_Py/docs/Doc_Deploy_macOS.md` §5.
