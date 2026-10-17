@@ -1,6 +1,8 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- macOS - `./deploy_local.sh` compila en Release, verifica el bundle, instala la app en Aplicaciones y la abre, sin ZIP, DMG ni GitHub y sin preguntar. Es el cierre de toda implementacion en la Mac.
+- [ macOS - Deploy local ]
 - Windows - Cuando `instalador.bat` crea el release (la Mac todavia no publico esa version), el titulo y las notas ya no son el texto fijo "First Windows release..." de `build_installer.ps1`, que dejo de ser cierto: salen de `RELEASE_TITLE` y `RELEASE_NOTES` de `tools/macos/release.conf`, con `{v}` reemplazado, los mismos que usa `publish_release.sh` en la Mac. Asi el release queda igual sin importar que plataforma publique primero. Verificado: el texto que arma Windows es identico byte a byte al que arma bash al leer el mismo `release.conf`.
 - [ Windows - Notas del release desde release.conf ]
 
