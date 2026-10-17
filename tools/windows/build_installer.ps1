@@ -24,19 +24,56 @@ function File-Sha256([string]$Path) {
     try { return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-','').ToLowerInvariant() }
     finally { $stream.Dispose(); $algorithm.Dispose() }
 }
+function Read-Version {
+    $match = [regex]::Match([IO.File]::ReadAllText((Join-Path $root 'CMakeLists.txt')), 'project\(ThetaExplorer VERSION (\d+\.\d{3})\b')
+    if (-not $match.Success) { throw 'No se pudo leer la version de CMake' }
+    return $match.Groups[1].Value
+}
+# Lo que impide publicar cualquier version. Solo lee y no corta: HEAD en origin, el tag y el
+# release dependen de la version que se termine publicando y los mira Publication-Preflight.
+function Publish-Blockers {
+    $ErrorActionPreference = 'Continue'
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { 'Falta GitHub CLI para publicar' }
+    else {
+        $account = & gh api user --jq .login 2>$null
+        if ($LASTEXITCODE -ne 0 -or $account -ne 'legandrop') { 'GitHub debe estar autenticado como legandrop' }
+        $visibility = & gh repo view $repo --json visibility --jq .visibility 2>$null
+        if ($LASTEXITCODE -ne 0 -or $visibility -ne 'PUBLIC') { 'No se pudo verificar el repo publico' }
+    }
+    if ((Git-Value @('config','user.email')) -ne '176236735+legandrop@users.noreply.github.com') { 'Identidad Git incorrecta' }
+    if ((Git-Value @('remote','get-url','origin')) -notmatch '^(https://github\.com/|git@github\.com:)legandrop/LGA_ThetaExplorer(?:\.git)?$') { 'Remoto incorrecto' }
+    if ((Git-Value @('branch','--show-current')) -ne 'main') { 'Publicar requiere main' }
+    if (Git-Value @('status','--porcelain')) { 'Publicar requiere el arbol limpio' }
+}
+# Estado del release v<version> para Windows: none (no existe), other (existe sin el setup de
+# Windows, lo creo la Mac), mine (ya lo tiene), draft o error. Solo lee.
+function Release-State {
+    $ErrorActionPreference = 'Continue'
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { return 'error' }
+    $out = @(& gh release view "v$version" --repo $repo --json isDraft,assets --jq '.isDraft, .assets[].name' 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) { if ($out -match 'not found') { return 'none' }; return 'error' }
+    if ($out[0] -eq 'true') { return 'draft' }
+    if ($out -contains "LGA_ThetaExplorer_Setup_v$version.exe") { return 'mine' }
+    return 'other'
+}
+# Una tecla, sin Enter; una que no es opcion no hace nada. choice lee tambien un pipe; EOF o
+# Ctrl+C cuentan como cancelar.
+function Read-Option([string]$Keys) {
+    & "$env:SystemRoot\System32\choice.exe" /C $Keys /N /M 'Opcion: ' | Out-Host
+    if ($LASTEXITCODE -lt 1 -or $LASTEXITCODE -gt $Keys.Length) { return '3' }
+    return $Keys[$LASTEXITCODE - 1].ToString()
+}
+function Local-Or-Cancel {
+    Write-Host '  2. Instalador local, sin subir a GitHub'
+    Write-Host '  3. Cancelar'
+    return (Read-Option '23')
+}
 function Publication-Preflight {
-    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'Falta GitHub CLI para publicar' }
-    if ((Git-Value @('config','user.email')) -ne '176236735+legandrop@users.noreply.github.com') { throw 'Identidad Git incorrecta' }
-    if ((Git-Value @('remote','get-url','origin')) -notmatch '^(https://github\.com/|git@github\.com:)legandrop/LGA_ThetaExplorer(?:\.git)?$') { throw 'Remoto incorrecto' }
-    if ((Git-Value @('branch','--show-current')) -ne 'main') { throw 'Publicar requiere main' }
-    if (Git-Value @('status','--porcelain')) { throw 'Publicar requiere el arbol limpio' }
+    $blockers = @(Publish-Blockers)
+    if ($blockers.Count) { throw ($blockers -join '; ') }
     $commit = Git-Value @('rev-parse','HEAD')
     $remote = (Git-Value @('ls-remote','origin','refs/heads/main')) -split '\s+'
     if ($remote[0] -ne $commit) { throw 'Publicar requiere HEAD ya pusheado a origin/main' }
-    $account = & gh api user --jq .login
-    if ($LASTEXITCODE -ne 0 -or $account -ne 'legandrop') { throw 'GitHub debe estar autenticado como legandrop' }
-    $visibility = & gh repo view $repo --json visibility --jq .visibility
-    if ($LASTEXITCODE -ne 0 -or $visibility -ne 'PUBLIC') { throw 'No se pudo verificar el repo publico' }
     $refs = Git-Value @('ls-remote','origin',"refs/tags/v$version", "refs/tags/v$version^{}")
     if ($refs) {
         $tagLines = $refs -split "`n"
@@ -60,40 +97,87 @@ function Publication-Preflight {
 
 try {
     Set-Location -LiteralPath $root
-    if ($Publish -and ($LocalOnly -or $StageOnly -or $NoRun -or [Console]::IsInputRedirected)) {
-        throw '--publish requiere consola interactiva y no admite --local, --stage-only ni --no-run'
+    if ($Publish -and ($LocalOnly -or $StageOnly -or $NoRun)) {
+        throw '--publish no admite --local, --stage-only ni --no-run'
     }
-    $match = [regex]::Match([IO.File]::ReadAllText((Join-Path $root 'CMakeLists.txt')), 'project\(ThetaExplorer VERSION (\d+\.\d{3})\b')
-    if (-not $match.Success) { throw 'No se pudo leer la version de CMake' }
-    $version = $match.Groups[1].Value
-    # CMakeLists.txt guarda la ultima version PUBLICADA y el ChangeLog la EN DESARROLLO: el numero
-    # sube solo con bump_version.bat, que corre Lega al publicar. Sin el bump la pregunta por
-    # publicar se hace igual: publicar arranca por bump_version.bat, que sube el numero, commitea,
-    # pushea y despues ofrece este mismo instalador con --publish. Si se dice que no, se arma el
-    # instalador local con la version publicada.
+    $version = Read-Version
+    # CMakeLists.txt guarda la ultima version PUBLICADA y el ChangeLog la EN DESARROLLO. La
+    # publicacion se decide ACA, antes de compilar (el numero queda adentro del binario), con el
+    # mismo criterio que publish_release.sh --decide en la Mac: se mira el release v<version> y se
+    # pregunta UNA vez, con una tecla. 1 es publicar v<version> (release nuevo), sumar el setup al
+    # release que ya creo la Mac o, si el changelog va adelante, el bump a esa version (commit +
+    # push) y publicarla; 2 instalador local; 3 cancelar. Con la version ya publicada para Windows y
+    # sin version nueva en el changelog no hay nada que publicar: republicar el mismo numero deja
+    # sin update a quien ya lo tiene. --publish no pregunta: publica si el estado lo permite.
     $interactive = -not $NoRun -and -not [Console]::IsInputRedirected
-    $offerPublication = -not $LocalOnly -and -not $StageOnly -and $interactive
-    if ($offerPublication -or $Publish) {
-        & (Join-Path $root 'tools\bump_version.ps1') -Check
-        if ($LASTEXITCODE -ne 0) {
-            if ($Publish) { throw 'Falta el bump de version: correr bump_version.bat' }
-            Write-Host 'Falta el bump de version para publicar.'
-            Confirm-Choice 'Publicar en GitHub? Primero corre bump_version.bat, que despues ofrece publicar'
-            if ($LASTEXITCODE -eq 1) {
-                & "$env:SystemRoot\System32\cmd.exe" /c (Join-Path $root 'bump_version.bat')
-                exit $LASTEXITCODE
+    $publishNow = $false
+    $key = '2'
+    if ($Publish) { $key = '1' }
+    elseif (-not $LocalOnly -and -not $StageOnly -and -not $NoRun) {
+        $devMatch = [regex]::Match([IO.File]::ReadAllText((Join-Path $root 'docs\ChangeLog.md')), '(?m)^v(\d+\.\d{3})\s*:')
+        $devVersion = $devMatch.Groups[1].Value
+        $ahead = $devMatch.Success -and ([version]$devVersion -gt [version]$version)
+        $state = Release-State
+        try { $blockers = @(Publish-Blockers) } catch { $blockers = @("$_") }
+        Write-Host ''
+        Write-Host '============================================================'
+        Write-Host ' Publicacion en GitHub [Theta Explorer, Windows]'
+        Write-Host '============================================================'
+        switch ($state) {
+            'none' { Write-Host "v$version no esta publicada en GitHub." }
+            'other' { Write-Host "v$version esta en GitHub, sin el instalador de Windows." }
+            'mine' { Write-Host "v$version ya esta publicada en GitHub con el instalador de Windows." }
+            'draft' { $blockers += "el release v$version es un borrador (publicarlo o borrarlo a mano)" }
+            default { $blockers += "no se pudo leer el release v$version" }
+        }
+        if ($ahead) { Write-Host "El changelog tiene v$devVersion en desarrollo." }
+        $action = ''
+        if ($ahead) {
+            if (Test-Path -LiteralPath (Join-Path $root 'tools\bump_version.ps1')) {
+                $action = 'bump'; $label = "Bump a v$devVersion (commit + push) y publicarla"
+            } else { Write-Host "Para publicar v$devVersion falta el bump (no esta tools\bump_version.ps1)." }
+        } elseif ($state -eq 'mine') { Write-Host 'Para publicar, primero la version nueva en el changelog.' }
+        elseif ($state -eq 'none') { $action = 'publish'; $label = "Publicar v$version como release nuevo" }
+        elseif ($state -eq 'other') { $action = 'publish'; $label = "Sumar el instalador de Windows al release v$version" }
+        if ($blockers.Count) {
+            $action = ''
+            Write-Host 'No se puede publicar:'
+            $blockers | ForEach-Object { Write-Host "  - $_" }
+        }
+        Write-Host ''
+        if ($action) {
+            Write-Host "  1. $label"
+            Write-Host '  2. Instalador local, sin subir a GitHub'
+            Write-Host '  3. Cancelar'
+            $key = Read-Option '123'
+        } else { $key = Local-Or-Cancel }
+        if ($key -eq '1' -and $action -eq 'bump') {
+            Write-Host ''
+            Write-Host "Bump a v$devVersion (commit + push)..."
+            & (Join-Path $root 'tools\bump_version.ps1') -Commit -NoPublish
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'El bump fallo (ver arriba).'
+                $key = Local-Or-Cancel
             }
-            Write-Host "Se genera el instalador local de v$version, sin publicar."
-            $offerPublication = $false
+            $version = Read-Version
         }
     }
-    if ($offerPublication) {
-        try { $commit = Publication-Preflight }
-        catch {
+    if ($key -eq '1') {
+        # Lo elegido se verifica entero: el bump commiteado, HEAD en origin, el tag y el release.
+        try {
+            & (Join-Path $root 'tools\bump_version.ps1') -Check
+            if ($LASTEXITCODE -ne 0) { throw 'Falta el bump de version: correr bump_version.bat' }
+            $commit = Publication-Preflight
+            $publishNow = $true
+        } catch {
             if ($Publish) { throw }
-            Write-Warning "No se puede publicar: $_. Se genera el instalador localmente."
-            $offerPublication = $false
+            Write-Host "No se puede publicar: $_"
+            $key = Local-Or-Cancel
         }
+    }
+    if ($key -eq '3') { Write-Host 'Cancelado. No se compilo nada.'; exit 1 }
+    if (-not $publishNow -and -not $LocalOnly -and -not $StageOnly -and -not $NoRun) {
+        Write-Host "Se genera el instalador local de v$version, sin publicar."
     }
     $compiler = if ($env:THETA_ISCC) { $env:THETA_ISCC } else { Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe' }
     if (-not $StageOnly -and -not (Test-Path -LiteralPath $compiler -PathType Leaf)) { throw 'Falta Inno Setup 6; indicar ISCC.exe con THETA_ISCC' }
@@ -209,21 +293,19 @@ end;
             Write-Host 'No se abrio Windows Explorer.'
         }
     }
-    if ($offerPublication) {
+    if ($publishNow) {
+        # La decision ya se tomo antes de compilar: aca no se vuelve a preguntar.
         $currentCommit = Publication-Preflight
         if ($currentCommit -ne $commit) { throw 'El commit cambio durante el empaquetado' }
         Write-Host "Release publico: $repo / v$version / $commit"
         Write-Host "Archivos: $setup y $hashFile"
-        Confirm-Choice "Desea subir el instalador como release v$version a GitHub?"
-        if ($LASTEXITCODE -eq 1 -and $script:releaseExists) {
+        if ($script:releaseExists) {
             Run-Checked 'gh' @('release','upload',"v$version",$setup,$hashFile,'--repo',$repo)
-        } elseif ($LASTEXITCODE -eq 1) {
+        } else {
             $notes = Join-Path $output 'release-notes.md'
             [IO.File]::WriteAllText($notes, 'First Windows release. Browse a RICOH THETA over USB, preview photos, group HDR brackets and download JPG/DNG files. Windows 10/11 x64; no Ricoh software required.', $utf8)
             Run-Checked 'gh' @('release','create',"v$version",$setup,$hashFile,'--repo',$repo,'--target',$commit,
                 '--title',"Theta Explorer v$version",'--notes-file',$notes,'--latest')
-        } else {
-            Write-Host 'Release no publicado.'
         }
     }
     exit 0

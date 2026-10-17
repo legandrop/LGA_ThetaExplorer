@@ -18,8 +18,8 @@ commits locales que salen en el mismo push); y ofrece publicar con `./deploy.sh 
 --publish` o `instalador.bat`. `--check` no escribe: sale 0 si `CMakeLists.txt` y el changelog
 coinciden y el bump esta commiteado. `deploy.sh` e `instalador.bat` lo usan antes de publicar y
 con terminal preguntan siempre si publicar; con `--publish`, sin bump cortan. En la Mac la
-pregunta la hace `publish_release.sh --decide` (ver el paso 1 abajo); `instalador.bat` sigue con
-el flujo viejo: sin bump, el "si" corre el bump, que despues ofrece publicar.
+pregunta la hace `publish_release.sh --decide` (ver el paso 1 abajo); en Windows, el menu de
+`instalador.bat` (ver abajo), con el mismo criterio.
 El release es uno solo y no importa que plataforma publique primero: la segunda le suma sus
 archivos. Las dos tienen que publicar desde el commit del bump, porque el tag `v<version>` apunta
 ahi y ninguna lo mueve.
@@ -43,32 +43,36 @@ canonica del Base. Genera el `.iss`, un manifiesto de archivos, el setup
 El `.iss` se regenera: se edita `tools/windows/build_installer.ps1`.
 `--stage-only` prepara y verifica el paquete sin compilar el setup.
 
-Sin flags y con consola interactiva, ofrece instalar, revelar el setup en Explorer
-y publicar en GitHub, en ese orden y con preguntas `Y/N` independientes mediante
-`choice /C YN` directo a la consola, igual que los otros instaladores. El modo local no requiere
-Git/GitHub ni ofrece publicar. `--no-run`, `--stage-only` y entrada redirigida
-omiten las preguntas y la publicacion.
+Sin flags, **la publicacion se decide antes de compilar** (el numero queda adentro del
+binario): mira el release `v<version>` en GitHub y pregunta una vez, con una tecla y sin
+Enter (`choice`; una tecla que no es opcion no hace nada):
+
+- `1` segun el estado: publicar `v<version>` como release nuevo; sumar el setup al release que
+  ya creo la Mac; o, si el changelog va adelante, el bump a esa version
+  (`tools/bump_version.ps1 -Commit -NoPublish`: commit + push) y publicarla.
+- `2` instalador local, sin subir nada. `3` cancelar, sin compilar.
+
+Si algo impide publicar (gh sin login `legandrop`, identidad o remoto, rama distinta de `main`,
+arbol sucio, release en borrador o ilegible) lo dice y ofrece solo `2`/`3`. Con la version ya
+publicada para Windows y sin version nueva en el changelog no hay `1`: republicar el mismo
+numero deja sin update a quien ya lo tiene. Si lo elegido no pasa la verificacion completa
+(bump, HEAD en origin, tag, release) o el bump falla, vuelve a ofrecer `2`/`3`. `choice` lee
+tambien una tecla por pipe; sin entrada cancela. Al terminar, solo con consola interactiva,
+ofrece instalar y revelar el setup en Explorer (`Y/N`). El modo local no requiere Git/GitHub ni
+pregunta por publicar. `--no-run` y `--stage-only` omiten las preguntas y la publicacion.
 El destino predeterminado es `C:\Portable\LGA\ThetaExplorer`; los ajustes e
 historial siguen en AppData. Al desinstalar se retira la cache propia y se conservan
 las fotos descargadas. El cierre por ruta usa el script canonico del Base y alcanza
 tambien al auxiliar WPD, que comparte el ejecutable de la app.
 
-Para publicar despues del bump (que ya commitea y pushea; `bump_version.bat` lo ofrece al
-terminar):
-
-```bat
-instalador.bat
-```
-
-Requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
+Publicar requiere `main` limpio, HEAD publicado, identidad Git y GitHub `legandrop` y el
 repo publico correcto. Rechaza un tag de otro commit. Si el release ya existe (lo creo la Mac),
 le suma el setup y `SHA256SUMS`; si ya tiene el setup de Windows, no lo reemplaza.
-Muestra repo, version, commit y archivos; solo crea el release si se responde `Y`
-a la pregunta final. Sube el setup y `SHA256SUMS` al mismo repo publico y no
-modifica permisos ni el manifiesto de LGA Updates. Si GitHub no esta listo,
-avisa y genera el instalador localmente. `--publish` sigue disponible para exigir
-esa verificacion antes de empaquetar, con la misma confirmacion `Y/N`; no admite
-`--local`, `--stage-only`, `--no-run` ni entrada redirigida.
+Elegido `1`, publica al terminar sin volver a preguntar (antes repite la verificacion y exige
+el mismo commit). Sube el setup y `SHA256SUMS` al mismo repo publico y no
+modifica permisos ni el manifiesto de LGA Updates. `instalador.bat --publish` (lo que corre
+`bump_version.bat` al ofrecer publicar) no muestra el menu: verifica antes de empaquetar y
+publica si el estado lo permite, o corta; no admite `--local`, `--stage-only` ni `--no-run`.
 
 La validacion del empaquetador genera el setup y comprueba sus hashes e insumos;
 no ejecuta el setup real ni modifica una instalacion del usuario. La instalacion

@@ -130,10 +130,11 @@ See [Windows backend and build](doc/windows.md) for details and validation limit
 
 To create a Windows installer locally, install Inno Setup 6 and run
 `instalador_local.bat --no-run`. The setup and `SHA256SUMS` appear in
-`deploy/windows-v<version>/`. Running `instalador.bat` without flags offers to install,
-reveal the setup in Explorer and publish to GitHub, with independent Y/N confirmations;
-publishing needs the version bump first (`bump_version.bat` on Windows, `./bump_version.sh` on
-macOS), which raises the version for both platforms and offers to publish. `--no-run` skips all prompts and publication;
+`deploy/windows-v<version>/`. Running `instalador.bat` without flags first checks the GitHub
+release and asks once, with a single key, whether to publish (a new release, adding the setup to
+the release macOS created, or bumping to the changelog version first), build locally or cancel;
+at the end it offers to install and to reveal the setup in Explorer. `--publish` publishes
+without asking when the state allows it. `--no-run` skips all prompts and publication;
 `instalador_local.bat` skips GitHub. See [Packaging and release](doc/deploy.md).
 
 ## Credits

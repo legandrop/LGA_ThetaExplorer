@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Windows - `instalador.bat` decide la publicacion antes de compilar, con el mismo criterio que `publish_release.sh --decide`: mira el release en GitHub y pregunta con una tecla, sin Enter, publicar (release nuevo, sumar el setup al release de la Mac, o el bump a la version del changelog con commit + push y publicarla), instalador local o cancelar. Si algo impide publicar (arbol sucio, rama, gh, release ya con el setup de Windows y sin version nueva) lo dice y ofrece solo local o cancelar. Antes, sin el bump el "si" pasaba el control a `bump_version.bat` y cortaba, y la publicacion se confirmaba otra vez con Y/N al final; esa pregunta se quita. `--publish` ya no pregunta: publica si el estado lo permite.
+- [ Windows - Menu de publicacion de una tecla antes de compilar ]
+
 - Mac - `deploy.sh` ya no pregunta "¿publicar?" a ciegas ni pasa el control a `bump_version.sh` cuando falta el bump: llama a `tools/macos/publish_release.sh --decide` (pieza canonica de la Base v0.158, re-copiada), que mira el release en GitHub antes de compilar y pregunta con una tecla, sin Enter: publicar o sumar macOS al release; si la version ya esta publicada para macOS o falta el bump, el bump (`BUMP_CMD` en `release.conf`, con commit y push) y publicar esa; build local; o cancelar. Era el caso de la v1.026, que ya tiene los archivos de macOS: antes el deploy se cortaba entero. Las preguntas Y/N del script pasan a una tecla. Probado en la Mac con un clon descartable; falta `instalador.bat`.
 - [ Deploy Mac - Menu de publicacion de una tecla antes de compilar ]
 
