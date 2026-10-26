@@ -1,6 +1,8 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- macOS - `deploy_local.sh` se re-copia de la pieza canonica de la Base (v0.161): ahora arma siempre el DMG (le pasa `--dmg` al deploy), para tener listo lo que se le manda a alguien sin otra corrida. Al terminar imprime la ruta de cada DMG de esa corrida y, solo con terminal, pregunta con una tecla si los muestra en Finder; sale con error si el deploy no dejo ningun DMG. Reglas del repo actualizadas.
+- [ macOS - deploy_local.sh arma el DMG y ofrece Finder ]
 - macOS y Windows - Las notas del release (`RELEASE_NOTES` de `tools/macos/release.conf`) hablaban solo de macOS: si Windows creaba el release primero, no mencionaba Windows. Ahora nombran las dos plataformas y traen la instalacion de cada una (el DMG con `xattr` y el setup de Windows). Las leen igual `publish_release.sh` y `build_installer.ps1`.
 - [ Release - Notas para macOS y Windows ]
 - macOS - `./deploy_local.sh` compila en Release, verifica el bundle, instala la app en Aplicaciones y la abre, sin ZIP, DMG ni GitHub y sin preguntar. Es el cierre de toda implementacion en la Mac.
