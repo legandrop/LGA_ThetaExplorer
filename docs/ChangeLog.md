@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Auto-update: `libs/lgaupdate` se re-copia de la rev 3 de la pieza canonica de `LGA_Base_QT_C_Py`. Faltaba la regla de red de LGA: GateBouncer bloquea el primer intento de cada programa y de cada servidor nuevo, y un chequeo o una descarga que fallaba una vez no se volvia a intentar. Ahora el chequeo, el manifiesto, las notas y la descarga reintentan 3 veces con 5 s entre intentos ante un fallo de conexion, un timeout, un corte de HTTP/2 o un 408/429/5xx (nunca un 4xx), con la cuenta por servidor; la descarga reanuda por `Range` y la barra de progreso dice "Connection problem. Retrying (attempt N of 4)...". Suma `LgaNetRetry.h` y el banco de pruebas de la biblioteca (`tests/`, apagado por defecto). Theta no cambia nada de su lado. Verificado en Windows: compila y el banco pasa 16/16 dentro del arbol de Theta.
+- [ Updates - lgaupdate rev 3, reintentos de red ]
+
 - macOS - `deploy_local.sh` se re-copia de la pieza canonica de la Base (v0.161): ahora arma siempre el DMG (le pasa `--dmg` al deploy), para tener listo lo que se le manda a alguien sin otra corrida. Al terminar imprime la ruta de cada DMG de esa corrida y, solo con terminal, pregunta con una tecla si los muestra en Finder; sale con error si el deploy no dejo ningun DMG. Reglas del repo actualizadas.
 - [ macOS - deploy_local.sh arma el DMG y ofrece Finder ]
 - macOS y Windows - Las notas del release (`RELEASE_NOTES` de `tools/macos/release.conf`) hablaban solo de macOS: si Windows creaba el release primero, no mencionaba Windows. Ahora nombran las dos plataformas y traen la instalacion de cada una (el DMG con `xattr` y el setup de Windows). Las leen igual `publish_release.sh` y `build_installer.ps1`.

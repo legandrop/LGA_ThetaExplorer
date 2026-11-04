@@ -175,7 +175,9 @@ arbol de fuentes no se reemplazan; Check now explica que la actualizacion corres
 copia instalada.
 
 La busqueda automatica comienza a los cinco segundos y se repite aproximadamente cada tres
-horas, con variacion de quince minutos; tras un fallo reintenta a los diez minutos. La
+horas, con variacion de quince minutos. Cada pedido de red (busqueda, notas y descarga) reintenta
+3 veces por servidor con cinco segundos entre intentos si falla la conexion, y la descarga sigue
+desde donde se corto; si los cuatro intentos fallan, la busqueda vuelve a probar a los diez minutos. La
 comprobacion periodica del reloj permite retomar luego de reposo. El usuario debe confirmar
 **Update now** antes de descargar e instalar: **Remind me later** aplaza un dia, **Skip this
 version** omite esa version y **Cancel** silencia las ofertas durante la sesion. Check now
