@@ -2,6 +2,10 @@
 
 set -u
 
+# Todo lo que sigue (build/, tools/, `cmake ..`) es relativo a la raiz del repo: llamado desde
+# otra carpeta, compilaba el arbol de esa carpeta.
+cd "$(dirname "$0")"
+
 # Binario universal (arm64 + x86_64): en Apple Silicon corre nativo. Antes el script se
 # relanzaba entero bajo Rosetta y compilaba solo x86_64, y macOS avisaba que la app Intel
 # deja de funcionar en una version futura. Qt 6.5.3 ya trae sus frameworks universales.
@@ -53,6 +57,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --parallel)
+            if [[ $# -lt 2 || ! "$2" =~ ^[0-9]+$ ]]; then
+                echo "ERROR: --parallel necesita un numero de nucleos."
+                exit 1
+            fi
             PARALLEL_CORES="$2"
             shift 2
             ;;
@@ -76,12 +84,14 @@ while [[ $# -gt 0 ]]; do
             RELEASE=true
             shift
             ;;
-        --help)
+        --help|-h)
             show_help
             exit 0
             ;;
+        # Una opcion desconocida corta ANTES de cerrar o compilar nada.
         *)
-            echo "Opción desconocida: $1"
+            echo "ERROR: opcion desconocida: $1"
+            echo ""
             show_help
             exit 1
             ;;
@@ -256,6 +266,7 @@ if [ -d "$APP_BUNDLE" ]; then
 fi
 
 if [ "$NO_RUN" = "true" ]; then
+    echo "Ejecucion omitida (--no-run)"
     exit 0
 fi
 
@@ -283,7 +294,13 @@ fi
 if [ "$WAIT_FOR_APP" = "true" ]; then
     exec "${LAUNCH[@]}"
 else
-    "${LAUNCH[@]}" >/dev/null 2>&1 &
+    # `set -m` (control de trabajos) le da a la app su PROPIO grupo de procesos. Sin eso queda
+    # en el grupo de la terminal que corrio el script, y una herramienta que al cerrarse mata
+    # ese grupo entero se lleva la app (medido el 2026-11-09: kill al grupo del shell mata un
+    # proceso lanzado con `&` + `disown`; con `set -m` sobrevive). stdin desde /dev/null para
+    # que, fuera del grupo de primer plano, la app no frene con SIGTTIN si lee la terminal.
+    set -m
+    "${LAUNCH[@]}" </dev/null >/dev/null 2>&1 &
     disown
     echo "   PID $! (background). Log: ${THETA_LOG_FILE:-$HOME/Library/Logs/LGA/ThetaExplorer/debug.log}"
     echo "   Usá --wait si necesitás ver su salida o su exit code en la terminal."

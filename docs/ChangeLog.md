@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- macOS - Piezas de macOS de la v0.171 de `LGA_Base_QT_C_Py`. `compilar.sh` se ubica en su carpeta (llamado desde otra, compilaba el arbol de esa carpeta), corta con error y codigo 1 tambien ante `--parallel` sin numero, y lanza la app con `set -m` y stdin en `/dev/null`: con `&` + `disown` quedaba en el grupo de procesos de la terminal, y una herramienta que al cerrarse mata ese grupo se llevaba la app. `tools/macos/publish_release.sh` se re-copia de la Base: `gh` y `git` reintentan 3 veces cada 5 s ante errores de red. La app no cambia: no tiene `BuildTree`, y `AppPaths::runsFromDevelopmentTree()` mira el nombre de la carpeta que contiene al `.app` a proposito (el updater no reemplaza un `build/` ni un `deploy/`).
+- [ Mac - compilar.sh mas robusto y reintentos en publish_release ]
+
 - Auto-update: `libs/lgaupdate` se re-copia de la rev 3 de la pieza canonica de `LGA_Base_QT_C_Py`. Faltaba la regla de red de LGA: GateBouncer bloquea el primer intento de cada programa y de cada servidor nuevo, y un chequeo o una descarga que fallaba una vez no se volvia a intentar. Ahora el chequeo, el manifiesto, las notas y la descarga reintentan 3 veces con 5 s entre intentos ante un fallo de conexion, un timeout, un corte de HTTP/2 o un 408/429/5xx (nunca un 4xx), con la cuenta por servidor; la descarga reanuda por `Range` y la barra de progreso dice "Connection problem. Retrying (attempt N of 4)...". Suma `LgaNetRetry.h` y el banco de pruebas de la biblioteca (`tests/`, apagado por defecto). Theta no cambia nada de su lado. Verificado en Windows: compila y el banco pasa 16/16 dentro del arbol de Theta.
 - [ Updates - lgaupdate rev 3, reintentos de red ]
 
