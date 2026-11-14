@@ -67,8 +67,11 @@ En macOS:
 2. Abrilo y arrastrá **LGA ThetaExplorer** a **Applications**.
 3. Abrí la app desde Applications.
 
-La app no está notarizada por Apple. Si macOS dice que no se puede abrir o que está
-dañada, corré esto en Terminal y abrila de nuevo:
+Desde la v1.027 la app viene firmada y notarizada por Apple: la primera vez macOS
+pregunta si querés abrir una app bajada de internet, y se contesta Abrir.
+
+Las versiones hasta la v1.026 no están notarizadas. Si macOS dice que una de ellas no se
+puede abrir o que está dañada, corré esto en Terminal y abrila de nuevo:
 
 ```bash
 sudo xattr -cr "/Applications/LGA ThetaExplorer.app"

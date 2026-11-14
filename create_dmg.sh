@@ -177,7 +177,27 @@ cleanup() {
 trap cleanup EXIT
 
 # Texto que ve el usuario: en ingles, como toda la UI.
-cat > "$WORK_ROOT/Read Me.txt" << EOF
+# Depende de si la app va notarizada (ticket abrochado por tools/macos/notarize.sh): notarizada,
+# Gatekeeper la abre sin mas y el `xattr -cr` sobra. Sin notarizar (Developer ID ausente,
+# --no-notarize, Apple la rechazo), sigue haciendo falta y se explica.
+if xcrun stapler validate -q "$SRC_APP" >/dev/null 2>&1; then
+    echo "La app va notarizada: el Read Me no pide xattr."
+    cat > "$WORK_ROOT/Read Me.txt" << EOF
+${DISPLAY_NAME} for macOS
+=========================
+
+Install:
+1. Drag ${APP_NAME}.app onto Applications.
+2. Open the app from Applications.
+
+The app is signed and verified by Apple. The first time, macOS asks whether you want to
+open an app downloaded from the internet: click Open.
+
+More: https://lega.com.ar
+EOF
+else
+    echo "AVISO: la app NO va notarizada: el Read Me explica el xattr -cr."
+    cat > "$WORK_ROOT/Read Me.txt" << EOF
 ${DISPLAY_NAME} for macOS
 =========================
 
@@ -199,6 +219,7 @@ and doesn't turn off Gatekeeper.
 
 More: https://lega.com.ar
 EOF
+fi
 
 cat > "$WORK_ROOT/settings.py" << EOF
 import os

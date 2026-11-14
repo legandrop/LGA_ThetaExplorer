@@ -92,7 +92,7 @@ La publicacion la hace `tools/macos/publish_release.sh`, copia IDENTICA de la pi
 `../LGA_Base_QT_C_Py` (no se modifica aca: el cambio va alla y se vuelve a copiar). Lo propio de
 esta app esta en `tools/macos/release.conf`, solo variables: el repo, la version de
 `CMakeLists.txt`, el chequeo `./bump_version.sh --check`, el titulo `LGA ThetaExplorer v<version>`
-y las notas del release (instalacion en macOS con `xattr` y en Windows con el setup; las usan las
+y las notas del release (instalacion en macOS desde el DMG y en Windows con el setup; las usan las
 dos plataformas, asi que nombran las dos). Sin What's new ni `SHA256SUMS` de macOS: el
 `SHA256SUMS` del release lo sube Windows con su linea sola y sin `--clobber`, asi que si la Mac lo
 creara primero, la publicacion de Windows fallaria. Contrato de la pieza:
@@ -115,6 +115,10 @@ recibir el dispositivo: el servicio del sistema rechaza la conexion antes del ca
 La identidad estable evita que cada build cambie de identidad; el permiso lo concede macOS
 al usuario, no el script. La firma local no instala la app ni publica un release.
 
+El release (`deploy.sh`) firma con Developer ID en vez de `LGA Code Signing`: la primera version
+asi firmada es otra identidad para macOS, y el permiso de la camara se vuelve a pedir una vez.
+Las renovaciones del certificado ya no lo provocan, porque el requisito depende del Team ID.
+
 ## Que hace
 
 1. **Version y decision**: la lee de `CMakeLists.txt` (`project(... VERSION ...)`). Sin flags y
@@ -135,17 +139,26 @@ al usuario, no el script. La firma local no instala la app ni publica un release
    separado: no toca la cache de desarrollo ni cierra la app de `build/`), universal
    arm64 + x86_64 y con `macdeployqt`.
 4. **Bundle**: `ditto` a `deploy/LGA ThetaExplorer.app`, valida que los binarios sean todos
-   universales (`tools/macos/validate_universal_macho.sh`) y firma. Usa la identidad estable
-   `LGA Code Signing` si esta en el llavero (override: `LGA_CODESIGN_IDENTITY`); si no, ad-hoc.
-   No hay notarizacion.
+   universales (`tools/macos/validate_universal_macho.sh`) y firma con
+   `tools/macos/sign_bundle.sh` (pieza canonica de la Base, copia IDENTICA). Con el
+   `Developer ID Application` del llavero firma con hardened runtime, sello de tiempo y de
+   adentro hacia afuera, con `resources/macos/Entitlements.plist`: solo
+   `com.apple.security.device.camera`, porque la THETA se lee por ImageCaptureCore y macOS lo
+   trata como acceso a la camara (sin el entitlement, el pedido se niega sin cartel). Sin
+   Developer ID cae a `LGA Code Signing` y despues a ad-hoc (override: `LGA_CODESIGN_IDENTITY`).
+   **Notarizacion** (`tools/macos/notarize.sh`, perfil `LGA-notary` del llavero): si hay
+   Developer ID y se arma el ZIP o el DMG, primero se notariza y abrocha el `.app` (el ticket
+   viaja dentro del ZIP del updater y del DMG); despues se firma y notariza el DMG. Se apaga con
+   `--no-notarize` o `LGA_NOTARIZE=0`. Un rechazo de Apple corta un `--publish`; en un build
+   local solo avisa. Detalle: `../LGA_Base_QT_C_Py/docs/Doc_Firma_Apple.md`.
 5. **ZIP** (`LGA_ThetaExplorer_Mac_v<version>.zip`): con `ditto`, nunca `zip` (resuelve
    los symlinks de los frameworks de Qt y rompe la firma). Se descomprime y se verifica que
    conserve symlinks y que la firma valide.
 6. **DMG** (`LGA_ThetaExplorer_Mac_v<version>.dmg`): `create_dmg.sh`, copiado de
    LGA_Calmate. Usa `dmgbuild` vendorizado en `tools/macos/vendor` (Python puro, corre con el
    `python3` de macOS, no instala nada) y el fondo versionado `resources/dmg/dmg_background.tiff`.
-   Adentro va un `Read Me.txt` en ingles con el `sudo xattr -cr` para abrir una app sin
-   notarizar. Al final monta el DMG y verifica el `.DS_Store` (fondo, alias a Applications).
+   Adentro va un `Read Me.txt` en ingles: si la app va notarizada (`stapler validate`) solo
+   dice como instalarla; si no, explica el `sudo xattr -cr`. Al final monta el DMG y verifica el `.DS_Store` (fondo, alias a Applications).
 7. **Release** (`publish_release.sh --expect-head <HEAD del preflight>`): vuelve a comprobar
    todo (Windows pudo publicar en el medio), verifica la firma del ZIP exacto que se sube, crea
    el tag anotado `v<version>` si no existe y lo pushea, y crea el release en
