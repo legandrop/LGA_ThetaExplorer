@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - `deploy_local.sh` se re-copia de la pieza canonica de `LGA_Base_QT_C_Py` (v0.176): el deploy local ya no notariza salvo con `--notarize` (le pasa `LGA_NOTARIZE` a `deploy.sh`), porque cada envio a Apple son minutos de espera en cada cambio. Publicar con `deploy.sh` sigue notarizando siempre. Reglas del repo actualizadas.
+- [ Mac - deploy_local sin notarizar salvo con --notarize ]
+
 - Mac - El empaquetado firma con `Developer ID Application` y notariza con Apple, como la v0.175 de `LGA_Base_QT_C_Py`. Se copian identicas `tools/macos/sign_bundle.sh` (hardened runtime, sello de tiempo, de adentro hacia afuera, sin `--deep`), `tools/macos/notarize.sh` (perfil `LGA-notary` del llavero; abrocha el ticket y exige `Notarized Developer ID` en `spctl`) y `tools/macos/publish_release.sh` (avisa si el DMG no esta notarizado). `deploy.sh` notariza el `.app` antes del ZIP y del DMG, y despues firma y notariza el DMG; `--no-notarize` o `LGA_NOTARIZE=0` lo apagan y un rechazo de Apple corta un `--publish`. Nuevo `resources/macos/Entitlements.plist` con solo `com.apple.security.device.camera`: la THETA se lee por ImageCaptureCore, que macOS trata como acceso a la camara, y con hardened runtime el pedido se negaria sin cartel. El `Read Me.txt` del DMG deja de pedir el `xattr -cr` cuando la app va notarizada, y las notas del release, el README y `doc/deploy.md` ya no lo piden (el README lo conserva para las versiones hasta la v1.026). Al cambiar la identidad de la firma, macOS vuelve a pedir el permiso de la camara una vez.
 - [ Mac - Firma Developer ID y notarizacion ]
 
