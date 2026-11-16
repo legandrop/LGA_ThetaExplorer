@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - Qt Virtual Keyboard sale del bundle, como en la v0.177 de `LGA_Base_QT_C_Py`. Es el teclado en pantalla de Qt, la app no lo usa (ni `QtVirtualKeyboard` ni `QT_IM_MODULE` en el codigo) y en Qt libre es GPLv3, no LGPL. `macdeployqt` copiaba el plugin `platforminputcontexts/libqtvirtualkeyboardplugin.dylib` y su `QtVirtualKeyboard.framework`; `compilar.sh` los borra despues de `macdeployqt`, antes de firmar y en cada corrida. Windows no cambia: `compilar.bat` y `tools/windows/build_installer.ps1` copian listas cerradas de DLLs y plugins, sin `windeployqt`, y ninguna incluye el teclado.
+- [ Mac - Sacar Qt Virtual Keyboard (GPL) del bundle ]
+
 - Mac - `deploy_local.sh` se re-copia de la pieza canonica de `LGA_Base_QT_C_Py` (v0.176): el deploy local ya no notariza salvo con `--notarize` (le pasa `LGA_NOTARIZE` a `deploy.sh`), porque cada envio a Apple son minutos de espera en cada cambio. Publicar con `deploy.sh` sigue notarizando siempre. Reglas del repo actualizadas.
 - [ Mac - deploy_local sin notarizar salvo con --notarize ]
 

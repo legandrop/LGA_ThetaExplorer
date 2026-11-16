@@ -236,6 +236,16 @@ else
     echo "Skipping deploy (--no-deploy)"
 fi
 
+# Qt Virtual Keyboard (teclado en pantalla para kioscos y pantallas tactiles) FUERA del bundle.
+# La app no lo usa, pero macdeployqt copia todos los plugins de platforminputcontexts y el plugin
+# arrastra su framework. En Qt libre es GPLv3, no LGPL: viajar en el bundle obligaria a abrir el
+# codigo de la app. En la Mac la escritura la maneja Cocoa, sin ese plugin. Va DESPUES de
+# macdeployqt, ANTES de firmar y en cada corrida, para limpiar tambien un bundle viejo que ya lo traia.
+rm -rf "$APP_BUNDLE/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib" \
+       "$APP_BUNDLE/Contents/Frameworks/QtVirtualKeyboard.framework" \
+       "$APP_BUNDLE/Contents/Frameworks/QtVirtualKeyboardQml.framework"
+rmdir "$APP_BUNDLE/Contents/PlugIns/platforminputcontexts" 2>/dev/null || true
+
 # El bundle tiene que quedar entero universal: un framework o plugin de una sola
 # arquitectura hace que la app no arranque en la otra.
 if [ "$NO_DEPLOY" = "false" ] && [ "$BUILD_ARCHS" = "arm64;x86_64" ]; then
