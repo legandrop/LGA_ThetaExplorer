@@ -144,10 +144,29 @@ try {
             Write-Host 'No se puede publicar:'
             $blockers | ForEach-Object { Write-Host "  - $_" }
         }
+        # Lo que saldria en What's New (Doc_Instaladores_Inno.md, seccion 12, de LGA_Base_QT_C_Py):
+        # los items para el usuario desde la ultima version publicada, de la version en desarrollo
+        # (la seccion ## vX mas alta del WhatsNew.md), antes de preguntar. Corre tambien si algo
+        # impide publicar: es cuando se decide si el bump vale la pena; ahi solo muestra. No corre
+        # al sumar el setup al release que ya creo la Mac: eso tiene sentido aunque no traiga nada
+        # nuevo. Exit 3 = nada nuevo: si hay opcion 1, queda como no recomendada. Exit 1 (sin red,
+        # archivo roto) no corta. Sin docs\WhatsNew.md no se muestra nada, como publish_release.sh
+        # con WHATS_NEW_FILE vacio: hoy Theta publica con las notas fijas de release.conf.
+        $wnNothingNew = $false
+        if (($ahead -or $state -ne 'other') -and (Test-Path -LiteralPath (Join-Path $root 'docs\WhatsNew.md'))) {
+            & (Join-Path $root 'whats_new_pendiente.bat')
+            if ($LASTEXITCODE -eq 3) {
+                $wnNothingNew = $true
+                if ($action) { $label = "$label - no recomendado: nada nuevo para el usuario" }
+            } elseif ($LASTEXITCODE -ne 0) {
+                Write-Host "No se pudo calcular lo que saldria en What's New: ver arriba."
+            }
+        }
         Write-Host ''
         if ($action) {
             Write-Host "  1. $label"
-            Write-Host '  2. Instalador local, sin subir a GitHub'
+            if ($wnNothingNew) { Write-Host '  2. Instalador local, sin subir a GitHub  - recomendado' }
+            else { Write-Host '  2. Instalador local, sin subir a GitHub' }
             Write-Host '  3. Cancelar'
             $key = Read-Option '123'
         } else { $key = Local-Or-Cancel }

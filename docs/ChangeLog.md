@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Publicar - el menu de `tools/windows/build_installer.ps1` puede mostrar, antes de preguntar, lo que saldria en What's New: `whats_new_pendiente.bat` (plantilla de la Base) lista en colores los items de `docs/WhatsNew.md` de la version en desarrollo desde la ultima publicada, y si no hay nada nuevo marca el `1` como no recomendado. Corre tambien si algo impide publicar; no al sumar el setup a un release que ya creo la Mac. Theta todavia no tiene `WhatsNew.md` (publica con las notas fijas de `release.conf`): sin el archivo el menu queda como estaba, igual que `publish_release.sh` con `WHATS_NEW_FILE` vacio. `tools/macos/publish_release.sh` se re-copia identico de la Base.
+- [ Publicar - el menu puede mostrar lo que saldria en What's New ]
+
 - Alineacion con `LGA_Base_QT_C_Py`. `libs/lgaupdate` se re-copia identica de la rev 6 (idioma, notas tambien en ingles, el cartel espera las notas 12 s). El `Logger` pasa a vivir en el heap sin destruirse: Qt sigue logueando despues de `main()` y el handler usaba el mutex y el archivo de un objeto ya destruido (riesgo de `0xC0000005` al salir). Se copian `RunMode` y `LgaHeadlessGuard` de la Base: una corrida sin pantalla no guarda geometria, carpeta ni el chequeo automatico, no migra settings ni chequea updates sola; una plataforma pedida sin su plugin sale con 3 en vez del cartel modal. Los pesos 700 bajan a 600 (QSS, `<b>` de los atajos y del aviso de descarga, resaltado del updater): `Inter-Bold.ttf` es SemiBold 600, asi que se dibuja igual.
 - [ Alineacion con la Base - lgaupdate rev 6, cierre seguro y corridas sin pantalla ]
 
