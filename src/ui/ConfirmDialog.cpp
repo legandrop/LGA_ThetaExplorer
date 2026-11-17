@@ -95,11 +95,10 @@ ConfirmDialog::ConfirmDialog(const Spec& spec, QWidget* parent)
         kb->setPixmap(UiIcons::pixmap("keyboard", kHintIconSize, QColor(kHintIconColor), dpr));
         hintRow->addWidget(kb, 0, Qt::AlignVCenter);
 
-        // Las teclas van en violeta, como en MediaTools. Peso 600 y no <b> (700): la Inter
-        // embebida no trae 700 y lo que se dibuja es la SemiBold igual.
+        // Las teclas van en violeta, como en MediaTools.
         QString html = spec.hintHtml;
-        html.replace("<b>", QStringLiteral("<span style='color:%1; font-weight:600'>").arg(ColorUtils::VIOLETA_CLARO));
-        html.replace("</b>", "</span>");
+        html.replace("<b>", QStringLiteral("<span style='color:%1'><b>").arg(ColorUtils::VIOLETA_CLARO));
+        html.replace("</b>", "</b></span>");
         auto* hint = new QLabel(html, this);
         hint->setObjectName("confirmHint");
         hint->setTextFormat(Qt::RichText);

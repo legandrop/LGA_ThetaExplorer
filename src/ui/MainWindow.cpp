@@ -587,10 +587,6 @@ void MainWindow::setupUpdates()
                       "This copy is running from the development folder.") : QString();
     };
     config.installBlockedReason = [this] { return updateInstallBlockedReason(); };
-    // Peso 600 y no el <b> por defecto: la Inter embebida no trae 700.
-    config.emphasizeHtml = [](const QString& escapedText) {
-        return QStringLiteral("<span style='font-weight:600'>%1</span>").arg(escapedText);
-    };
     config.prepareForUpdatePrompt = [this] {
         if (m_helpDialog) m_helpDialog->reject();
     };
@@ -1234,7 +1230,7 @@ void MainWindow::finishDownloadBatch()
         else
             notifySuccess(QString("Downloaded %1 file%2.").arg(ok).arg(ok != 1 ? "s" : ""));
     } else {
-        notifyError(QString("<span style='font-weight:600'>%1 of %2 files couldn't be downloaded.</span><br>%3")
+        notifyError(QString("<b>%1 of %2 files couldn't be downloaded.</b><br>%3")
             .arg(m_downloadErrors).arg(m_downloadTotal)
             .arg(m_lastDownloadError.toHtmlEscaped() + (m_historyWriteFailed
                 ? QStringLiteral("<br>Download history for the completed files could not be saved.") : QString())));

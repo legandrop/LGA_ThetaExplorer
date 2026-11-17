@@ -23,9 +23,10 @@ sola familia**: con una lista de familias Qt carga todas las fuentes del sistema
 Qt/C++ del Base, "font-family con lista"). Si Inter no queda registrada, `main.cpp` lo avisa en el
 log.
 
-El archivo `Inter-Bold.ttf` es en realidad la SemiBold (peso 600): no hay 700. Por eso la app pide
-600 como peso mas alto (QSS, `<span style='font-weight:600'>` en vez de `<b>`, y el `emphasizeHtml`
-del updater); pedir 700 dibuja lo mismo y solo deja un pedido que no se cumple.
+El archivo `Inter-Bold.ttf` es en realidad la SemiBold (peso 600): no hay 700. La app igual pide
+700 (QSS y `<b>`), y eso NO equivale a pedir 600: en Windows (DirectWrite) se dibuja igual, pero con
+FreeType (plataforma `offscreen`) Qt aplica negrita sintetica sobre la SemiBold y el texto sale mas
+grueso y mas ancho; en macOS no esta medido. No bajar a 600 sin comparar capturas en Mac.
 
 ## Iconos
 
