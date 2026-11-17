@@ -54,6 +54,8 @@
 #include <QResizeEvent>
 #include <QTimer>
 
+#include <memory>
+
 namespace {
 
 QString chooseDirectoryNonNative(QWidget* parent,
@@ -506,7 +508,7 @@ QString MainWindow::updateInstallBlockedReason() const
     // Los helpers de instalacion son PowerShell; consultar solo sus comandos, sin cerrar nada.
     const QString helperPrefix = QDir(LgaUpdateService::resolveUpdateDir(AppPaths::updateCacheDirectory()))
         .filePath("LGA_ThetaExplorer_Update_Helper_");
-    QScopedPointer<QProcess> reader(new QProcess);
+    std::unique_ptr<QProcess> reader(new QProcess);
     reader->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
         args->flags |= CREATE_NO_WINDOW;
     });
@@ -517,7 +519,7 @@ QString MainWindow::updateInstallBlockedReason() const
     if (!reader->waitForFinished(5000)) { reader->kill(); reader->waitForFinished(1000); }
     if (reader->state() != QProcess::NotRunning) {
         // No destruir un QProcess vivo: esperar su final sin bloquear la ventana.
-        QProcess* detached = reader.take();
+        QProcess* detached = reader.release();
         connect(detached, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), detached, &QObject::deleteLater);
         return "The update helpers could not be checked. Please try updating again.";
     }

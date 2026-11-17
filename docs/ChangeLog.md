@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- El chequeo de los helpers de instalacion usa `std::unique_ptr` en vez de `QScopedPointer::take()`, deprecado en Qt 6: compila sin avisos y se comporta igual.
+- [ Build - Sin aviso de QScopedPointer::take ]
+
 - Vuelven los pesos 700 (tres del QSS, `<b>` de los atajos de `ConfirmDialog` y del aviso de descarga fallida, resaltado por defecto del updater). Se habian bajado a 600 suponiendo que se dibujaba igual porque `Inter-Bold.ttf` es SemiBold, pero no: con FreeType Qt aplica negrita sintetica al pedir 700 y el texto sale mas grueso y ancho (en Windows con DirectWrite si es identico; en macOS sin medir). Se conserva el aspecto anterior y `doc/ui.md` lo explica.
 - [ UI - Vuelven los pesos 700 de la fuente ]
 
