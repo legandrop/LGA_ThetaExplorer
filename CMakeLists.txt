@@ -112,6 +112,7 @@ set(SOURCES
     src/utils/ColorUtils.cpp
     src/utils/UiIcons.cpp
     src/utils/AppPaths.cpp
+    src/utils/RunMode.cpp
     src/utils/DualFisheyePreview.cpp
 )
 
@@ -148,6 +149,8 @@ set(HEADERS
     include/thetaexplorer/StatusWidgets.h
     include/thetaexplorer/UiIcons.h
     include/thetaexplorer/AppPaths.h
+    include/thetaexplorer/LgaHeadlessGuard.h
+    include/thetaexplorer/RunMode.h
     include/thetaexplorer/DualFisheyePreview.h
     include/thetaexplorer/popover/MessagePopover.h
     include/thetaexplorer/popover/PopoverCloseButton.h

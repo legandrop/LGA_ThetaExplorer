@@ -2,8 +2,10 @@
 #include "thetaexplorer/AppPaths.h"
 #include "thetaexplorer/CameraFileInfo.h"
 #include "thetaexplorer/ColorUtils.h"
+#include "thetaexplorer/LgaHeadlessGuard.h"
 #include "thetaexplorer/Logger.h"
 #include "thetaexplorer/MediaAssetGroup.h"
+#include "thetaexplorer/RunMode.h"
 #ifdef Q_OS_WIN
 #include "thetaexplorer/ThetaCameraWorker.h"
 #include <cstring>
@@ -48,6 +50,11 @@ int main(int argc, char* argv[])
     if (argc > 1 && std::strcmp(argv[1], "--camera-worker") == 0)
         return ThetaCameraWorker::runThetaCameraWorker(argc, argv);
 #endif
+    // Antes de QApplication: con una plataforma pedida y sin su plugin, Qt abriria un cartel
+    // modal y el proceso quedaria colgado. Va despues del auxiliar WPD porque ese usa
+    // QCoreApplication, que no carga plugin de plataforma.
+    if (const int guard = LgaHeadlessGuard::check(argc, argv))
+        return guard;
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus, false);
 
     QApplication app(argc, argv);
@@ -67,7 +74,9 @@ int main(int argc, char* argv[])
                 << QDateTime::currentDateTime().toString()
                 << " | " << thetaexplorer::Logger::instance().configurationSummary();
 
-    AppPaths::migrateLegacySettings();
+    LgaRunMode::logIfNotPersisting();
+    if (LgaRunMode::canPersistConfig())
+        AppPaths::migrateLegacySettings();
 
     // Register custom metatypes for cross-thread signal/slot use
     qRegisterMetaType<CameraFileInfo>("CameraFileInfo");

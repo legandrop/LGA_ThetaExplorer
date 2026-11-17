@@ -259,7 +259,7 @@ QLabel#tileThumb {
 QLabel#tileThumb[placeholder="raw"] {
     color: color_warning;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 600;
 }
 QLabel#tileBadge {
     border-radius: 11px;
@@ -274,7 +274,7 @@ QLabel#tileBadge[state="partial"] {
 }
 QLabel#tileBadgeText {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     background: transparent;
 }
 QLabel#tileBadgeText[state="saved"] {
@@ -362,7 +362,7 @@ QDialog#confirmDialog {
 QLabel#confirmTitle {
     color: #e8e8e8;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
 }
 QLabel#confirmSubtitle {
     color: #7b7b7b;

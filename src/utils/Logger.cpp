@@ -57,8 +57,12 @@ LogLevel qtTypeToLevel(QtMsgType type)
 
 Logger& Logger::instance()
 {
-    static Logger logger;
-    return logger;
+    // En el heap y sin destruir, a proposito: Qt sigue mandando mensajes DESPUES de que main()
+    // devuelve (la descarga de plugins, por ejemplo). Con un `static Logger` local, el handler
+    // instalado tomaba el mutex y el QFile de un objeto ya destruido, y la app podia terminar
+    // con una violacion de acceso al salir. El sistema cierra el archivo al terminar.
+    static Logger* const logger = new Logger();
+    return *logger;
 }
 
 void Logger::initialize()

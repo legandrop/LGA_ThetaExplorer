@@ -1,6 +1,7 @@
 #include "thetaexplorer/HelpDialog.h"
 #include "thetaexplorer/AppPaths.h"
 #include "thetaexplorer/Logger.h"
+#include "thetaexplorer/RunMode.h"
 #include "lgaupdate/LgaUpdateService.h"
 #include <QApplication>
 #include <QCheckBox>
@@ -169,6 +170,8 @@ HelpDialog::HelpDialog(const QString& downloadFolder, QWidget* parent, LgaUpdate
         QSettings settings(AppPaths::settingsFile(), QSettings::IniFormat);
         automatic->setChecked(settings.value("Updates/AutomaticChecks", true).toBool());
         connect(automatic, &QCheckBox::toggled, this, [](bool enabled) {
+            if (!LgaRunMode::canPersistConfig())
+                return;
             QSettings settings(AppPaths::settingsFile(), QSettings::IniFormat);
             settings.setValue("Updates/AutomaticChecks", enabled);
         });

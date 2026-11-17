@@ -100,6 +100,10 @@ No se revelan los datos RAW ni se fusionan exposiciones HDR.
 El workflow manual `Windows build` compila Debug y Release con el script del repo,
 comprueba browse/stop del auxiliar sin una cámara física y arranca QApplication con el
 plugin offscreen. La prueba usa sólo el runtime desplegado, sin DLL del SDK en PATH.
+Una corrida sin pantalla (`offscreen`, `minimal`) no guarda configuracion (geometria, carpeta de
+descarga, chequeo automatico) ni chequea updates sola: lo decide `LgaRunMode::canPersistConfig()`
+(`RunMode.h`, copiado de la Base) y el log lo dice en una linea `[RunMode]`. Si se pide una
+plataforma cuyo plugin falta, `LgaHeadlessGuard` sale con 3 por stderr en vez del cartel modal de Qt.
 Usa un runtime de herramientas
 propio y paquetes fijados; no publica instaladores ni releases.
 

@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Alineacion con `LGA_Base_QT_C_Py`. `libs/lgaupdate` se re-copia identica de la rev 6 (idioma, notas tambien en ingles, el cartel espera las notas 12 s). El `Logger` pasa a vivir en el heap sin destruirse: Qt sigue logueando despues de `main()` y el handler usaba el mutex y el archivo de un objeto ya destruido (riesgo de `0xC0000005` al salir). Se copian `RunMode` y `LgaHeadlessGuard` de la Base: una corrida sin pantalla no guarda geometria, carpeta ni el chequeo automatico, no migra settings ni chequea updates sola; una plataforma pedida sin su plugin sale con 3 en vez del cartel modal. Los pesos 700 bajan a 600 (QSS, `<b>` de los atajos y del aviso de descarga, resaltado del updater): `Inter-Bold.ttf` es SemiBold 600, asi que se dibuja igual.
+- [ Alineacion con la Base - lgaupdate rev 6, cierre seguro y corridas sin pantalla ]
+
 - Mac - el DMG de primera instalacion pasa de `LGA_ThetaExplorer_Mac_v<version>.dmg` a `LGA_ThetaExplorer_v<version>.dmg`, sin el `_Mac`; el `.zip` sigue como `LGA_ThetaExplorer_Mac_v<version>.zip`, porque lo busca por ese nombre el updater de las copias ya instaladas. Cambian `create_dmg.sh` y `deploy.sh`, las notas del release (`tools/macos/release.conf`) y los README, y `tools/macos/publish_release.sh` se re-copia identico de la v0.179 de `../LGA_Base_QT_C_Py` (reconoce tambien un release publicado con el nombre viejo). El card de LGA Updates de PipeSync y el sitio ya aceptan los dos nombres.
 - [ Mac - El DMG pierde el _Mac en el nombre; el zip lo conserva ]
 
