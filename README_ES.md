@@ -62,7 +62,7 @@ Detalle: [Deploy y release](doc/deploy.md).
 
 En macOS:
 
-1. Bajá `LGA_ThetaExplorer_Mac_v<version>.dmg` de
+1. Bajá `LGA_ThetaExplorer_v<version>.dmg` de
    [Releases](../../releases/latest).
 2. Abrilo y arrastrá **LGA ThetaExplorer** a **Applications**.
 3. Abrí la app desde Applications.

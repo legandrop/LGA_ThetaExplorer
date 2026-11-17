@@ -56,7 +56,7 @@ includes the required runtime and can create a desktop shortcut.
 
 On macOS:
 
-1. Download `LGA_ThetaExplorer_Mac_v<version>.dmg` from
+1. Download `LGA_ThetaExplorer_v<version>.dmg` from
    [Releases](../../releases/latest).
 2. Open it and drag **LGA ThetaExplorer** onto **Applications**.
 3. Open the app from Applications.

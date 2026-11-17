@@ -31,7 +31,7 @@ show_help() {
     echo "o cancelar; y si no se publica, por el ZIP y el DMG. Todo con una tecla, sin Enter."
     echo ""
     echo "  --zip             Crear deploy/${ARTIFACT_NAME}_Mac_v<version>.zip (actualizacion)"
-    echo "  --dmg             Crear deploy/${ARTIFACT_NAME}_Mac_v<version>.dmg (primera instalacion)"
+    echo "  --dmg             Crear deploy/${ARTIFACT_NAME}_v<version>.dmg (primera instalacion)"
     echo "  --publish         Publicar el .zip y el .dmg en el release v<version> de GitHub (implica --zip --dmg)"
     echo "  --no-publish      No publicar ni preguntar"
     echo "  --dry-run         Con --publish: todo menos escribir en GitHub y en el repo"
@@ -164,7 +164,7 @@ PUBLISH_HEAD=""
 
 TAG="v${APP_VERSION}"
 ZIP_NAME="${ARTIFACT_NAME}_Mac_v${APP_VERSION}.zip"
-DMG_NAME="${ARTIFACT_NAME}_Mac_v${APP_VERSION}.dmg"
+DMG_NAME="${ARTIFACT_NAME}_v${APP_VERSION}.dmg"
 APP_PATH="deploy/${APP_NAME}.app"
 
 echo "Deploy de $APP_NAME v$APP_VERSION"

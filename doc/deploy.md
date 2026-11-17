@@ -83,7 +83,7 @@ y desinstalacion reales se comprueban con el usuario mirando.
 ## macOS
 
 La app y su ejecutable se llaman `LGA ThetaExplorer`; el nombre corto del menu sigue
-siendo `ThetaExplorer`. Los archivos ZIP y DMG usan `LGA_ThetaExplorer_Mac_v<version>`.
+siendo `ThetaExplorer`. El ZIP usa `LGA_ThetaExplorer_Mac_v<version>.zip` y el DMG `LGA_ThetaExplorer_v<version>.dmg`.
 
 `./deploy.sh` hace todo en un solo paso. Con terminal pregunta al principio si publicar (por
 defecto **no**) y, si no, que armar; despues corre sin frenar. Publicar implica el ZIP y el DMG.
@@ -154,7 +154,7 @@ Las renovaciones del certificado ya no lo provocan, porque el requisito depende 
 5. **ZIP** (`LGA_ThetaExplorer_Mac_v<version>.zip`): con `ditto`, nunca `zip` (resuelve
    los symlinks de los frameworks de Qt y rompe la firma). Se descomprime y se verifica que
    conserve symlinks y que la firma valide.
-6. **DMG** (`LGA_ThetaExplorer_Mac_v<version>.dmg`): `create_dmg.sh`, copiado de
+6. **DMG** (`LGA_ThetaExplorer_v<version>.dmg`): `create_dmg.sh`, copiado de
    LGA_Calmate. Usa `dmgbuild` vendorizado en `tools/macos/vendor` (Python puro, corre con el
    `python3` de macOS, no instala nada) y el fondo versionado `resources/dmg/dmg_background.tiff`.
    Adentro va un `Read Me.txt` en ingles: si la app va notarizada (`stapler validate`) solo
