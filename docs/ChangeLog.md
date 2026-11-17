@@ -1,6 +1,9 @@
 # ChangeLog — LGA Theta Explorer
 
 v1.027:
+- Mac - Updates - el cartel «Update Requires Manual Step» (la carpeta de la app no se puede escribir y el auto-update no puede reemplazarla) le pedia al usuario instalar a mano y correr `sudo xattr -cr`. Con la app firmada con Developer ID y notarizada ese paso sobra. Ahora dice «Please download the new macOS release and drag %3 to the Applications folder.» Texto de `libs/lgaupdate` de la Base v0.178.
+- [ Mac - El aviso de update manual ya no pide xattr ]
+
 - Mac - Qt Virtual Keyboard sale del bundle, como en la v0.177 de `LGA_Base_QT_C_Py`. Es el teclado en pantalla de Qt, la app no lo usa (ni `QtVirtualKeyboard` ni `QT_IM_MODULE` en el codigo) y en Qt libre es GPLv3, no LGPL. `macdeployqt` copiaba el plugin `platforminputcontexts/libqtvirtualkeyboardplugin.dylib` y su `QtVirtualKeyboard.framework`; `compilar.sh` los borra despues de `macdeployqt`, antes de firmar y en cada corrida. Windows no cambia: `compilar.bat` y `tools/windows/build_installer.ps1` copian listas cerradas de DLLs y plugins, sin `windeployqt`, y ninguna incluye el teclado.
 - [ Mac - Sacar Qt Virtual Keyboard (GPL) del bundle ]
 
